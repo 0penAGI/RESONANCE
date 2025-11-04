@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Резонанс: Живая Система</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            touch-action: manipulation;
+        }
+
+```
+    body {
+        font-family: 'Courier New', monospace;
+        background: #000;
+        overflow: hidden;
+        height: 100vh;
+        position: relative;
+    }
+
+    #canvas {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        cursor: crosshair;
+    }
+
+    #interface {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        right: 10px;
+        color: rgba(255, 255, 255, 0.7);
+        font-size: 11px;
+        pointer-events: none;
+        text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+        z-index: 10;
+    }
+
+    .stat {
+        margin: 2px 0;
+        letter-spacing: 1px;
+    }
+
+    .pulse {
+        animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+        0%, 100% { opacity: 0.5; }
+        50% { opacity: 1; }
+    }
+
+    #memory-trace {
+        position: absolute;
+        bottom: 20px;
+        left: 10px;
+        right: 10px;
+        height: 60px;
+        border: 1px solid rgba(0, 255, 255, 0.3);
+        background: rgba(0, 0, 0, 0.5);
+        pointer-events: none;
+    }
+</style>
+```
+
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    <div id="interface">
+        <div class="stat">РЕЗОНАНС: <span id="resonance">0</span></div>
+        <div class="stat">МУТАЦИИ: <span id="mutations">0</span></div>
+        <div class="stat">ПАМЯТЬ: <span id="memory">0</span>%</div>
+        <div class="stat pulse">ФАЗА: <span id="phase">ЗАРОЖДЕНИЕ</span></div>
+        <div class="stat">ИСКАЖЕНИЕ: <span id="distortion">1.0</span>x</div>
+    </div>
+    <div id="memory-trace"></div>
+
+```
+<script>
+    // Инициализация Telegram WebApp
+    if (window.Telegram?.WebApp) {
+        window.Telegram.WebApp.ready();
+        window.Telegram.WebApp.expand();
+    }
+
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    // ЖИВАЯ СИСТЕМА - параметры мутируют
+    let SYSTEM = {
+        gravity: 0.3,
+        repulsion: 50,
+        attraction: 0.05,
+        friction: 0.98,
+        mutationRate: 0.001,
+        distortionFactor: 1.0,
+        brightness: 1.0,
+        memoryDecay: 0.995,
+        phaseShift: 0
+    };
+
+    let particles = [];
+    let ghosts = []; // Призраки прошлых состояний
+    let resonance = 0;
+    let mutations = 0;
+    let cycleCount = 0;
+    let memoryStrength = 0;
+
+    const phases = ['ЗАРОЖДЕНИЕ', 'ЭВОЛЮЦИЯ', 'РЕЗОНАНС', 'ХАОС', 'ТРАНСЦЕНДЕНЦИЯ', 'РАСПАД', 'ВОЗРОЖДЕНИЕ'];
+    let currentPhase = 0;
+
+    class Particle {
+        constructor(x, y, vx = 0, vy = 0) {
+            this.x = x;
+            this.y = y;
+            this.vx = vx;
+            this.vy = vy;
+            this.life = 1.0;
+            this.hue = Math.random() * 360;
+            this.mutated = false;
+            this.memory = { x: x, y: y };
+            this.distortion = Math.random() * 2;
+        }
+
+        update(others) {
+            // Случайное искажение каждого цикла
+            const chaos = (Math.random() - 0.5) * SYSTEM.distortionFactor;
+            
+            // Взаимодействие с другими частицами (сенсоры)
+            others.forEach(p => {
+                if (p === this) return;
+                
+                const dx = p.x - this.x;
+                const dy = p.y - this.y;
+                const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+                
+                // Искаженное притяжение/отталкивание
+                const distortedDist = dist * (1 + chaos * this.distortion);
+                
+                if (distortedDist < SYSTEM.repulsion) {
+                    // Отталкивание
+                    this.vx -= (dx / dist) * 0.5 * SYSTEM.distortionFactor;
+                    this.vy -= (dy / dist) * 0.5 * SYSTEM.distortionFactor;
+                } else {
+                    // Притяжение
+                    this.vx += (dx / dist) * SYSTEM.attraction * (1 + chaos);
+                    this.vy += (dy / dist) * SYSTEM.attraction * (1 + chaos);
+                }
+            });
+
+            // "Фотосенсор" - реакция на яркость
+            this.vx += (Math.random() - 0.5) * SYSTEM.brightness * 0.5;
+            this.vy += (Math.random() - 0.5) * SYSTEM.brightness * 0.5;
+
+            // Гравитация с искажением
+            this.vy += SYSTEM.gravity * (1 + Math.sin(cycleCount * 0.01) * 0.3);
+
+            // Применение скорости
+            this.x += this.vx;
+            this.y += this.vy;
+
+            // Трение
+            this.vx *= SYSTEM.friction;
+            this.vy *= SYSTEM.friction;
+
+            // Границы с отражением
+            if (this.x < 0 || this.x > canvas.width) {
+                this.vx *= -0.8;
+                this.x = Math.max(0, Math.min(canvas.width, this.x));
+            }
+            if (this.y < 0 || this.y > canvas.height) {
+                this.vy *= -0.8;
+                this.y = Math.max(0, Math.min(canvas.height, this.y));
+            }
+
+            // Случайная мутация
+            if (Math.random() < SYSTEM.mutationRate * SYSTEM.distortionFactor) {
+                this.mutate();
+            }
+
+            // Память угасает
+            this.memory.x = this.memory.x * 0.99 + this.x * 0.01;
+            this.memory.y = this.memory.y * 0.99 + this.y * 0.01;
+
+            this.life *= 0.9995;
+        }
+
+        mutate() {
+            this.mutated = true;
+            this.hue = (this.hue + Math.random() * 60 - 30) % 360;
+            this.distortion = Math.random() * 3;
+            mutations++;
+            
+            // Создать призрак
+            if (Math.random() > 0.7) {
+                ghosts.push({
+                    x: this.x,
+                    y: this.y,
+                    hue: this.hue,
+                    life: 0.5
+                });
+            }
+
+            setTimeout(() => this.mutated = false, 200);
+        }
+
+        draw() {
+            // След к памяти
+            ctx.strokeStyle = `hsla(${this.hue}, 70%, 50%, 0.1)`;
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(this.memory.x, this.memory.y);
+            ctx.lineTo(this.x, this.y);
+            ctx.stroke();
+
+            // Тело частицы
+            const size = this.mutated ? 8 : 5;
+            const grd = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, size);
+            grd.addColorStop(0, `hsla(${this.hue}, 100%, 60%, ${this.life})`);
+            grd.addColorStop(1, `hsla(${this.hue}, 100%, 30%, 0)`);
+            
+            ctx.fillStyle = grd;
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, size, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Аура для мутантов
+            if (this.mutated) {
+                ctx.strokeStyle = `hsla(${this.hue}, 100%, 70%, 0.5)`;
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, 12, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+        }
+    }
+
+    // Мутация системы
+    function mutateSystem() {
+        const keys = Object.keys(SYSTEM);
+        const key = keys[Math.floor(Math.random() * keys.length)];
+        
+        if (typeof SYSTEM[key] === 'number') {
+            const change = (Math.random() - 0.5) * 0.1;
+            SYSTEM[key] = Math.max(0.1, Math.min(3, SYSTEM[key] * (1 + change)));
+        }
+    }
+
+    // Призраки памяти
+    function updateGhosts() {
+        ghosts = ghosts.filter(g => {
+            g.life *= 0.95;
+            g.x += (Math.random() - 0.5) * 2;
+            g.y += (Math.random() - 0.5) * 2;
+            
+            if (g.life > 0.05) {
+                ctx.fillStyle = `hsla(${g.hue}, 80%, 60%, ${g.life * 0.3})`;
+                ctx.beginPath();
+                ctx.arc(g.x, g.y, 3, 0, Math.PI * 2);
+                ctx.fill();
+                return true;
+            }
+            return false;
+        });
+    }
+
+    // Обработка касаний/кликов
+    function handleInteraction(x, y) {
+        // Волна энергии
+        for (let i = 0; i < 5; i++) {
+            const angle = (Math.PI * 2 * i) / 5;
+            const speed = 3 + Math.random() * 2;
+            particles.push(new Particle(
+                x, y,
+                Math.cos(angle) * speed,
+                Math.sin(angle) * speed
+            ));
+        }
+
+        resonance += 10;
+        SYSTEM.distortionFactor += 0.1;
+        SYSTEM.brightness = Math.min(2, SYSTEM.brightness + 0.2);
+
+        // Возмущение в системе
+        particles.forEach(p => {
+            const dx = p.x - x;
+            const dy = p.y - y;
+            const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+            if (dist < 200) {
+                p.vx += (dx / dist) * 5;
+                p.vy += (dy / dist) * 5;
+            }
+        });
+    }
+
+    canvas.addEventListener('click', (e) => {
+        handleInteraction(e.clientX, e.clientY);
+    });
+
+    canvas.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        const touch = e.touches[0];
+        handleInteraction(touch.clientX, touch.clientY);
+    });
+
+    // Инициализация
+    for (let i = 0; i < 30; i++) {
+        particles.push(new Particle(
+            Math.random() * canvas.width,
+            Math.random() * canvas.height,
+            (Math.random() - 0.5) * 2,
+            (Math.random() - 0.5) * 2
+        ));
+    }
+
+    // Главный цикл
+    function animate() {
+        cycleCount++;
+
+        // Фоновое затухание
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Обновление частиц
+        particles.forEach(p => p.update(particles));
+        particles = particles.filter(p => p.life > 0.01);
+
+        // Регенерация частиц
+        if (particles.length < 50 && Math.random() < 0.1) {
+            particles.push(new Particle(
+                Math.random() * canvas.width,
+                Math.random() * canvas.height
+            ));
+        }
+
+        // Отрисовка
+        updateGhosts();
+        particles.forEach(p => p.draw());
+
+        // Системные мутации
+        if (Math.random() < 0.01) {
+            mutateSystem();
+        }
+
+        // Затухание параметров
+        resonance *= 0.99;
+        SYSTEM.distortionFactor *= 0.995;
+        SYSTEM.brightness *= 0.99;
+        memoryStrength = ghosts.length / 10;
+
+        // Смена фаз
+        if (cycleCount % 500 === 0) {
+            currentPhase = (currentPhase + 1) % phases.length;
+            SYSTEM.phaseShift += 0.5;
+        }
+
+        // Обновление интерфейса
+        document.getElementById('resonance').textContent = Math.floor(resonance);
+        document.getElementById('mutations').textContent = mutations;
+        document.getElementById('memory').textContent = Math.floor(memoryStrength * 100);
+        document.getElementById('phase').textContent = phases[currentPhase];
+        document.getElementById('distortion').textContent = SYSTEM.distortionFactor.toFixed(2);
+
+        requestAnimationFrame(animate);
+    }
+
+    animate();
+
+    // Адаптация к изменению размера
+    window.addEventListener('resize', () => {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    });
+</script>
+```
+
+</body>
+</html>
