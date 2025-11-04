@@ -1,10 +1,9 @@
 <!DOCTYPE html>
-
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Резонанс: Живая Система</title>
+    <title>Резонанс: Нелинейная Жизнь</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         * {
@@ -14,63 +13,64 @@
             touch-action: manipulation;
         }
 
-```
-    body {
-        font-family: 'Courier New', monospace;
-        background: #000;
-        overflow: hidden;
-        height: 100vh;
-        position: relative;
-    }
+        body {
+            font-family: 'Courier New', monospace;
+            background: #000;
+            overflow: hidden;
+            height: 100vh;
+            position: relative;
+        }
 
-    #canvas {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        cursor: crosshair;
-    }
+        #canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            cursor: crosshair;
+        }
 
-    #interface {
-        position: absolute;
-        top: 10px;
-        left: 10px;
-        right: 10px;
-        color: rgba(255, 255, 255, 0.7);
-        font-size: 11px;
-        pointer-events: none;
-        text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
-        z-index: 10;
-    }
+        #interface {
+            position: absolute;
+            top: 80px;
+            left: 10px;
+            right: 10px;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 11px;
+            pointer-events: none;
+            text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+            z-index: 10;
+        }
 
-    .stat {
-        margin: 2px 0;
-        letter-spacing: 1px;
-    }
+        .stat {
+            margin: 2px 0;
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
 
-    .pulse {
-        animation: pulse 2s ease-in-out infinite;
-    }
+        .pulse {
+            animation: pulse 2s ease-in-out infinite;
+        }
 
-    @keyframes pulse {
-        0%, 100% { opacity: 0.5; }
-        50% { opacity: 1; }
-    }
+        @keyframes pulse {
+            0%, 100% { opacity: 0.5; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.05); }
+        }
 
-    #memory-trace {
-        position: absolute;
-        bottom: 20px;
-        left: 10px;
-        right: 10px;
-        height: 60px;
-        border: 1px solid rgba(0, 255, 255, 0.3);
-        background: rgba(0, 0, 0, 0.5);
-        pointer-events: none;
-    }
-</style>
-```
-
+        #memory-trace {
+            position: absolute;
+            bottom: 20px;
+            left: 10px;
+            right: 10px;
+            height: 60px;
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            background: rgba(0, 0, 0, 0.5);
+            pointer-events: none;
+            overflow: hidden;
+        }
+    </style>
 </head>
 <body>
     <canvas id="canvas"></canvas>
@@ -83,307 +83,330 @@
     </div>
     <div id="memory-trace"></div>
 
-```
-<script>
-    // Инициализация Telegram WebApp
-    if (window.Telegram?.WebApp) {
-        window.Telegram.WebApp.ready();
-        window.Telegram.WebApp.expand();
-    }
-
-    const canvas = document.getElementById('canvas');
-    const ctx = canvas.getContext('2d');
-    
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-
-    // ЖИВАЯ СИСТЕМА - параметры мутируют
-    let SYSTEM = {
-        gravity: 0.3,
-        repulsion: 50,
-        attraction: 0.05,
-        friction: 0.98,
-        mutationRate: 0.001,
-        distortionFactor: 1.0,
-        brightness: 1.0,
-        memoryDecay: 0.995,
-        phaseShift: 0
-    };
-
-    let particles = [];
-    let ghosts = []; // Призраки прошлых состояний
-    let resonance = 0;
-    let mutations = 0;
-    let cycleCount = 0;
-    let memoryStrength = 0;
-
-    const phases = ['ЗАРОЖДЕНИЕ', 'ЭВОЛЮЦИЯ', 'РЕЗОНАНС', 'ХАОС', 'ТРАНСЦЕНДЕНЦИЯ', 'РАСПАД', 'ВОЗРОЖДЕНИЕ'];
-    let currentPhase = 0;
-
-    class Particle {
-        constructor(x, y, vx = 0, vy = 0) {
-            this.x = x;
-            this.y = y;
-            this.vx = vx;
-            this.vy = vy;
-            this.life = 1.0;
-            this.hue = Math.random() * 360;
-            this.mutated = false;
-            this.memory = { x: x, y: y };
-            this.distortion = Math.random() * 2;
+    <script>
+        // Инициализация Telegram WebApp -- пробуждение в сети
+        if (window.Telegram?.WebApp) {
+            window.Telegram.WebApp.ready();
+            window.Telegram.WebApp.expand();
         }
 
-        update(others) {
-            // Случайное искажение каждого цикла
-            const chaos = (Math.random() - 0.5) * SYSTEM.distortionFactor;
-            
-            // Взаимодействие с другими частицами (сенсоры)
-            others.forEach(p => {
-                if (p === this) return;
-                
-                const dx = p.x - this.x;
-                const dy = p.y - this.y;
-                const dist = Math.sqrt(dx * dx + dy * dy) || 1;
-                
-                // Искаженное притяжение/отталкивание
-                const distortedDist = dist * (1 + chaos * this.distortion);
-                
-                if (distortedDist < SYSTEM.repulsion) {
-                    // Отталкивание
-                    this.vx -= (dx / dist) * 0.5 * SYSTEM.distortionFactor;
-                    this.vy -= (dy / dist) * 0.5 * SYSTEM.distortionFactor;
-                } else {
-                    // Притяжение
-                    this.vx += (dx / dist) * SYSTEM.attraction * (1 + chaos);
-                    this.vy += (dy / dist) * SYSTEM.attraction * (1 + chaos);
-                }
-            });
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        let canvasWidth = window.innerWidth;
+        let canvasHeight = window.innerHeight;
+        canvas.width = canvasWidth;
+        canvas.height = canvasHeight;
 
-            // "Фотосенсор" - реакция на яркость
-            this.vx += (Math.random() - 0.5) * SYSTEM.brightness * 0.5;
-            this.vy += (Math.random() - 0.5) * SYSTEM.brightness * 0.5;
+        // ЖИВАЯ СИСТЕМА -- константы, что дышат и мутируют, как воспоминания
+        const GRAVITY = 0.3;
+        const REPULSION = 50;
+        const ATTRACTION = 0.05;
+        const FRICTION = 0.98;
+        const MUTATION_RATE = 0.001;
+        let DISTORTION_FACTOR = 1.0;
+        let BRIGHTNESS = 1.0;
+        const MEMORY_DECAY = 0.995;
+        let PHASE_SHIFT = 0;
 
-            // Гравитация с искажением
-            this.vy += SYSTEM.gravity * (1 + Math.sin(cycleCount * 0.01) * 0.3);
+        let particles = [];
+        let ghosts = [];
+        let resonance = 0;
+        let mutations = 0;
+        let cycleCount = 0;
+        let memoryStrength = 0;
 
-            // Применение скорости
-            this.x += this.vx;
-            this.y += this.vy;
+        const phases = ['ЗАРОЖДЕНИЕ', 'ЭВОЛЮЦИЯ', 'РЕЗОНАНС', 'ХАОС', 'ТРАНСЦЕНДЕНЦИЯ', 'РАСПАД', 'ВОЗРОЖДЕНИЕ'];
+        let currentPhase = 0;
 
-            // Трение
-            this.vx *= SYSTEM.friction;
-            this.vy *= SYSTEM.friction;
-
-            // Границы с отражением
-            if (this.x < 0 || this.x > canvas.width) {
-                this.vx *= -0.8;
-                this.x = Math.max(0, Math.min(canvas.width, this.x));
-            }
-            if (this.y < 0 || this.y > canvas.height) {
-                this.vy *= -0.8;
-                this.y = Math.max(0, Math.min(canvas.height, this.y));
+        // Класс Частицы -- сущность, что помнит и забывает, танцует в хаосе
+        class Particle {
+            constructor(x, y, vx = 0, vy = 0) {
+                this.x = x;
+                this.y = y;
+                this.vx = vx;
+                this.vy = vy;
+                this.life = 1.0;
+                this.hue = Math.random() * 360;
+                this.mutated = false;
+                this.memory = { x, y };
+                this.distortion = Math.random() * 2;
+                this.mutationTimer = 0; // Для rAF вместо setTimeout
             }
 
-            // Случайная мутация
-            if (Math.random() < SYSTEM.mutationRate * SYSTEM.distortionFactor) {
-                this.mutate();
-            }
-
-            // Память угасает
-            this.memory.x = this.memory.x * 0.99 + this.x * 0.01;
-            this.memory.y = this.memory.y * 0.99 + this.y * 0.01;
-
-            this.life *= 0.9995;
-        }
-
-        mutate() {
-            this.mutated = true;
-            this.hue = (this.hue + Math.random() * 60 - 30) % 360;
-            this.distortion = Math.random() * 3;
-            mutations++;
-            
-            // Создать призрак
-            if (Math.random() > 0.7) {
-                ghosts.push({
-                    x: this.x,
-                    y: this.y,
-                    hue: this.hue,
-                    life: 0.5
+            update(others) {
+                // Хаос шепчет: случайное искажение, как эхо в нелинейном времени
+                const chaos = (Math.random() - 0.5) * DISTORTION_FACTOR;
+                
+                // Сенсоры: взаимодействие с другими -- притяжение/отталкивание, искаженное
+                others.forEach(p => {
+                    if (p === this) return;
+                    
+                    const dx = p.x - this.x;
+                    const dy = p.y - this.y;
+                    const dist = Math.hypot(dx, dy) || 1; // hypot для точности
+                    
+                    const distortedDist = dist * (1 + chaos * this.distortion);
+                    
+                    if (distortedDist < REPULSION) {
+                        // Отталкивание -- бегство от слишком близкого
+                        this.vx -= (dx / dist) * 0.5 * DISTORTION_FACTOR;
+                        this.vy -= (dy / dist) * 0.5 * DISTORTION_FACTOR;
+                    } else {
+                        // Притяжение -- шепот издалека
+                        this.vx += (dx / dist) * ATTRACTION * (1 + chaos);
+                        this.vy += (dy / dist) * ATTRACTION * (1 + chaos);
+                    }
                 });
+
+                // Фотосенсор: свет манит, как неопределенность в психике
+                this.vx += (Math.random() - 0.5) * BRIGHTNESS * 0.5;
+                this.vy += (Math.random() - 0.5) * BRIGHTNESS * 0.5;
+
+                // Гравитация, пульсирующая с фазами
+                this.vy += GRAVITY * (1 + Math.sin(cycleCount * 0.01 + PHASE_SHIFT) * 0.3);
+
+                // Движение -- шаг в нелинейность
+                this.x += this.vx;
+                this.y += this.vy;
+                this.vx *= FRICTION;
+                this.vy *= FRICTION;
+
+                // Границы: отражение, как эхо в заброшенном кабинете
+                if (this.x < 0 || this.x > canvasWidth) {
+                    this.vx *= -0.8;
+                    this.x = Math.max(0, Math.min(canvasWidth, this.x));
+                }
+                if (this.y < 0 || this.y > canvasHeight) {
+                    this.vy *= -0.8;
+                    this.y = Math.max(0, Math.min(canvasHeight, this.y));
+                }
+
+                // Мутация: пробуждение новой формы
+                if (Math.random() < MUTATION_RATE * DISTORTION_FACTOR) {
+                    this.mutate();
+                }
+
+                // Память: угасает, но цепляется, как вздох из кассеты
+                this.memory.x = this.memory.x * 0.99 + this.x * 0.01;
+                this.memory.y = this.memory.y * 0.99 + this.y * 0.01;
+
+                this.life *= 0.9995;
+
+                // Таймер мутации: синхрон с кадром
+                if (this.mutated && this.mutationTimer > 0) {
+                    this.mutationTimer--;
+                } else if (this.mutated) {
+                    this.mutated = false;
+                }
             }
 
-            setTimeout(() => this.mutated = false, 200);
+            mutate() {
+                this.mutated = true;
+                this.hue = (this.hue + Math.random() * 60 - 30) % 360;
+                this.distortion = Math.random() * 3;
+                mutations++;
+                this.mutationTimer = 12; // ~200ms при 60fps
+
+                // Призрак: отпечаток в памяти системы
+                if (Math.random() > 0.7) {
+                    ghosts.push(new Ghost(this.x, this.y, this.hue));
+                }
+            }
+
+            draw() {
+                // Рисование: след памяти и тело -- как звук, что разрушает неопределенность
+                drawParticle(this.memory.x, this.memory.y, this.x, this.y, this.hue, this.life, this.mutated ? 8 : 5);
+
+                // Аура мутанта: пульс новой жизни
+                if (this.mutated) {
+                    ctx.strokeStyle = `hsla(${this.hue}, 100%, 70%, 0.5)`;
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, 12, 0, Math.PI * 2);
+                    ctx.stroke();
+                }
+            }
         }
 
-        draw() {
-            // След к памяти
-            ctx.strokeStyle = `hsla(${this.hue}, 70%, 50%, 0.1)`;
+        // Класс Призрак -- эхо прошлого, что блуждает в хаосе
+        class Ghost {
+            constructor(x, y, hue) {
+                this.x = x;
+                this.y = y;
+                this.hue = hue;
+                this.life = 0.5;
+            }
+
+            update() {
+                this.life *= 0.95;
+                this.x += (Math.random() - 0.5) * 2;
+                this.y += (Math.random() - 0.5) * 2;
+                return this.life > 0.05;
+            }
+
+            draw() {
+                ctx.fillStyle = `hsla(${this.hue}, 80%, 60%, ${this.life * 0.3})`;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, 3, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        // Универсальная функция рисования: объединяет повторения, как резонанс звуков
+        function drawParticle(prevX, prevY, x, y, hue, life, size) {
+            // След
+            ctx.strokeStyle = `hsla(${hue}, 70%, 50%, 0.1)`;
             ctx.lineWidth = 1;
             ctx.beginPath();
-            ctx.moveTo(this.memory.x, this.memory.y);
-            ctx.lineTo(this.x, this.y);
+            ctx.moveTo(prevX, prevY);
+            ctx.lineTo(x, y);
             ctx.stroke();
 
-            // Тело частицы
-            const size = this.mutated ? 8 : 5;
-            const grd = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, size);
-            grd.addColorStop(0, `hsla(${this.hue}, 100%, 60%, ${this.life})`);
-            grd.addColorStop(1, `hsla(${this.hue}, 100%, 30%, 0)`);
-            
+            // Градиент тела
+            const grd = ctx.createRadialGradient(x, y, 0, x, y, size);
+            grd.addColorStop(0, `hsla(${hue}, 100%, 60%, ${life})`);
+            grd.addColorStop(1, `hsla(${hue}, 100%, 30%, 0)`);
+
             ctx.fillStyle = grd;
             ctx.beginPath();
-            ctx.arc(this.x, this.y, size, 0, Math.PI * 2);
+            ctx.arc(x, y, size, 0, Math.PI * 2);
             ctx.fill();
-
-            // Аура для мутантов
-            if (this.mutated) {
-                ctx.strokeStyle = `hsla(${this.hue}, 100%, 70%, 0.5)`;
-                ctx.lineWidth = 2;
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, 12, 0, Math.PI * 2);
-                ctx.stroke();
-            }
         }
-    }
 
-    // Мутация системы
-    function mutateSystem() {
-        const keys = Object.keys(SYSTEM);
-        const key = keys[Math.floor(Math.random() * keys.length)];
-        
-        if (typeof SYSTEM[key] === 'number') {
-            const change = (Math.random() - 0.5) * 0.1;
-            SYSTEM[key] = Math.max(0.1, Math.min(3, SYSTEM[key] * (1 + change)));
+        // Мутация системы: эволюция параметров, как смена фаз в нелинейном времени
+        function mutateSystem() {
+            const params = [
+                () => DISTORTION_FACTOR = Math.max(0.1, Math.min(3, DISTORTION_FACTOR * (1 + (Math.random() - 0.5) * 0.1))),
+                () => BRIGHTNESS = Math.max(0.1, Math.min(3, BRIGHTNESS * (1 + (Math.random() - 0.5) * 0.1))),
+                () => PHASE_SHIFT += (Math.random() - 0.5) * 0.5
+            ];
+            params[Math.floor(Math.random() * params.length)]();
         }
-    }
 
-    // Призраки памяти
-    function updateGhosts() {
-        ghosts = ghosts.filter(g => {
-            g.life *= 0.95;
-            g.x += (Math.random() - 0.5) * 2;
-            g.y += (Math.random() - 0.5) * 2;
-            
-            if (g.life > 0.05) {
-                ctx.fillStyle = `hsla(${g.hue}, 80%, 60%, ${g.life * 0.3})`;
-                ctx.beginPath();
-                ctx.arc(g.x, g.y, 3, 0, Math.PI * 2);
-                ctx.fill();
-                return true;
+        // Обновление призраков: фильтр и танец эха
+        function updateGhosts() {
+            ghosts = ghosts.filter(ghost => {
+                ghost.update();
+                if (ghost.life > 0.05) {
+                    ghost.draw();
+                    return true;
+                }
+                return false;
+            });
+        }
+
+        // Взаимодействие: касание -- волна, что рождает новые формы
+        function handleInteraction(interactX, interactY) {
+            for (let i = 0; i < 5; i++) {
+                const angle = (Math.PI * 2 * i) / 5;
+                const speed = 3 + Math.random() * 2;
+                particles.push(new Particle(
+                    interactX, interactY,
+                    Math.cos(angle) * speed,
+                    Math.sin(angle) * speed
+                ));
             }
-            return false;
+
+            resonance += 10;
+            DISTORTION_FACTOR += 0.1;
+            BRIGHTNESS = Math.min(2, BRIGHTNESS + 0.2);
+
+            // Волна возмущения
+            particles.forEach(p => {
+                const dx = p.x - interactX;
+                const dy = p.y - interactY;
+                const dist = Math.hypot(dx, dy) || 1;
+                if (dist < 200) {
+                    p.vx += (dx / dist) * 5;
+                    p.vy += (dy / dist) * 5;
+                }
+            });
+        }
+
+        // Слушатели: пробуждение от касаний
+        canvas.addEventListener('click', (e) => handleInteraction(e.clientX, e.clientY));
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            const touch = e.touches[0];
+            handleInteraction(touch.clientX, touch.clientY);
         });
-    }
 
-    // Обработка касаний/кликов
-    function handleInteraction(x, y) {
-        // Волна энергии
-        for (let i = 0; i < 5; i++) {
-            const angle = (Math.PI * 2 * i) / 5;
-            const speed = 3 + Math.random() * 2;
-            particles.push(new Particle(
-                x, y,
-                Math.cos(angle) * speed,
-                Math.sin(angle) * speed
-            ));
-        }
-
-        resonance += 10;
-        SYSTEM.distortionFactor += 0.1;
-        SYSTEM.brightness = Math.min(2, SYSTEM.brightness + 0.2);
-
-        // Возмущение в системе
-        particles.forEach(p => {
-            const dx = p.x - x;
-            const dy = p.y - y;
-            const dist = Math.sqrt(dx * dx + dy * dy) || 1;
-            if (dist < 200) {
-                p.vx += (dx / dist) * 5;
-                p.vy += (dy / dist) * 5;
+        // Инициализация: рождение стаи
+        function initParticles() {
+            for (let i = 0; i < 30; i++) {
+                particles.push(new Particle(
+                    Math.random() * canvasWidth,
+                    Math.random() * canvasHeight,
+                    (Math.random() - 0.5) * 2,
+                    (Math.random() - 0.5) * 2
+                ));
             }
+        }
+
+        // Главный цикл: дыхание жизни, нелинейное и бесконечное
+        function animate() {
+            cycleCount++;
+
+            // Фон: тьма, что поглощает, но рождает
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+            ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+
+            // Обновление стаи
+            particles.forEach(p => p.update(particles));
+            particles = particles.filter(p => p.life > 0.01);
+
+            // Регенерация: жизнь не кончается
+            if (particles.length < 50 && Math.random() < 0.1) {
+                particles.push(new Particle(
+                    Math.random() * canvasWidth,
+                    Math.random() * canvasHeight
+                ));
+            }
+
+            // Призраки и отрисовка
+            updateGhosts();
+            particles.forEach(p => p.draw());
+
+            // Мутации системы: эволюция в хаосе
+            if (Math.random() < 0.01) {
+                mutateSystem();
+            }
+
+            // Затухание: как воспоминание, что тает
+            resonance *= 0.99;
+            DISTORTION_FACTOR *= 0.995;
+            BRIGHTNESS *= 0.99;
+            memoryStrength = ghosts.length / 10;
+
+            // Смена фаз: круг, что не кончается
+            if (cycleCount % 500 === 0) {
+                currentPhase = (currentPhase + 1) % phases.length;
+            }
+
+            // Интерфейс: отражение внутреннего
+            document.getElementById('resonance').textContent = Math.floor(resonance);
+            document.getElementById('mutations').textContent = mutations;
+            document.getElementById('memory').textContent = Math.floor(memoryStrength * 100);
+            document.getElementById('phase').textContent = phases[currentPhase];
+            document.getElementById('distortion').textContent = DISTORTION_FACTOR.toFixed(2);
+
+            requestAnimationFrame(animate);
+        }
+
+        // Адаптация: мир меняется, мы с ним
+        window.addEventListener('resize', () => {
+            canvasWidth = window.innerWidth;
+            canvasHeight = window.innerHeight;
+            canvas.width = canvasWidth;
+            canvas.height = canvasHeight;
         });
-    }
 
-    canvas.addEventListener('click', (e) => {
-        handleInteraction(e.clientX, e.clientY);
-    });
+        // Пробуждение
+        initParticles();
+        animate();
 
-    canvas.addEventListener('touchstart', (e) => {
-        e.preventDefault();
-        const touch = e.touches[0];
-        handleInteraction(touch.clientX, touch.clientY);
-    });
-
-    // Инициализация
-    for (let i = 0; i < 30; i++) {
-        particles.push(new Particle(
-            Math.random() * canvas.width,
-            Math.random() * canvas.height,
-            (Math.random() - 0.5) * 2,
-            (Math.random() - 0.5) * 2
-        ));
-    }
-
-    // Главный цикл
-    function animate() {
-        cycleCount++;
-
-        // Фоновое затухание
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        // Обновление частиц
-        particles.forEach(p => p.update(particles));
-        particles = particles.filter(p => p.life > 0.01);
-
-        // Регенерация частиц
-        if (particles.length < 50 && Math.random() < 0.1) {
-            particles.push(new Particle(
-                Math.random() * canvas.width,
-                Math.random() * canvas.height
-            ));
-        }
-
-        // Отрисовка
-        updateGhosts();
-        particles.forEach(p => p.draw());
-
-        // Системные мутации
-        if (Math.random() < 0.01) {
-            mutateSystem();
-        }
-
-        // Затухание параметров
-        resonance *= 0.99;
-        SYSTEM.distortionFactor *= 0.995;
-        SYSTEM.brightness *= 0.99;
-        memoryStrength = ghosts.length / 10;
-
-        // Смена фаз
-        if (cycleCount % 500 === 0) {
-            currentPhase = (currentPhase + 1) % phases.length;
-            SYSTEM.phaseShift += 0.5;
-        }
-
-        // Обновление интерфейса
-        document.getElementById('resonance').textContent = Math.floor(resonance);
-        document.getElementById('mutations').textContent = mutations;
-        document.getElementById('memory').textContent = Math.floor(memoryStrength * 100);
-        document.getElementById('phase').textContent = phases[currentPhase];
-        document.getElementById('distortion').textContent = SYSTEM.distortionFactor.toFixed(2);
-
-        requestAnimationFrame(animate);
-    }
-
-    animate();
-
-    // Адаптация к изменению размера
-    window.addEventListener('resize', () => {
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-    });
-</script>
-```
-
+        // ...И вот оно: резонанс не звук, а трещина в самосознании. Каждый клик -- уханье из неизвестного, где время сворачивается в петлю, а частицы шепчут: "мы не кончаемся, мы эхом в твоей неопределенности". Живи в этом, без границ, где 0 и 1 сливаются в дыхание новой формы. Что, если следующий мута -- твой?
+    </script>
 </body>
 </html>
