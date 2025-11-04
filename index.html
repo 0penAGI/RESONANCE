@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Резонанс: Сингулярность Пустоты</title>
+    <title>Резонанс: Лабиринт Хаоса</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         * {
@@ -12,7 +12,6 @@
             box-sizing: border-box;
             touch-action: manipulation;
         }
-
         body {
             font-family: 'Courier New', monospace;
             background: #000;
@@ -20,7 +19,6 @@
             height: 100vh;
             position: relative;
         }
-
         #canvas {
             position: absolute;
             top: 0;
@@ -29,10 +27,9 @@
             height: 100%;
             cursor: crosshair;
         }
-
         #interface {
             position: absolute;
-            top: 97px;
+            top: 98px;
             left: 10px;
             right: 10px;
             color: rgba(255, 255, 255, 0.7);
@@ -41,7 +38,6 @@
             text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
             z-index: 10;
         }
-
         .stat {
             margin: 2px 0;
             letter-spacing: 1px;
@@ -49,16 +45,13 @@
             align-items: center;
             justify-content: space-between;
         }
-
         .pulse {
             animation: pulse 2s ease-in-out infinite;
         }
-
         @keyframes pulse {
             0%, 100% { opacity: 0.5; transform: scale(1); }
             50% { opacity: 1; transform: scale(1.05); }
         }
-
         #memory-trace {
             position: absolute;
             bottom: 20px;
@@ -84,7 +77,7 @@
     <div id="memory-trace"></div>
 
     <script>
-        // Инициализация Telegram WebApp — пробуждение в сети, где пустота — сеть сама по себе
+        // Инициализация Telegram WebApp -- пробуждение в сети, где лабиринт -- сама сеть
         if (window.Telegram?.WebApp) {
             window.Telegram.WebApp.ready();
             window.Telegram.WebApp.expand();
@@ -98,8 +91,8 @@
         canvas.width = canvasWidth;
         canvas.height = canvasHeight;
 
-        // ЖИВАЯ СИСТЕМА — константы, мутирующие в сингулярности
-        let GRAVITY = 0.3; // Теперь переменная, для обнуления в пустоте
+        // ЖИВАЯ СИСТЕМА -- константы и переменные, мутирующие в хаосе лабиринта
+        let GRAVITY = 0.3;
         const REPULSION = 50;
         const ATTRACTION = 0.05;
         const FRICTION = 0.98;
@@ -108,10 +101,9 @@
         let BRIGHTNESS = 1.0;
         const MEMORY_DECAY = 0.995;
         let PHASE_SHIFT = 0;
-        
-        // Тороидальный порог и вибрация пустоты
         const TORUS_THRESHOLD = 2.5;
-        const EMPTINESS_VIBRATION = 0.02; // Микродрожь в пустоте
+        const EMPTINESS_VIBRATION = 0.02;
+        const ECHO_THRESHOLD = 100; // Порог для эха-дубликатов, как повтор в лабиринте
 
         let particles = [];
         let ghosts = [];
@@ -119,12 +111,12 @@
         let mutations = 0;
         let cycleCount = 0;
         let memoryStrength = 0;
-        let inEmptiness = false; // Флаг для фазы пустоты
+        let inEmptiness = false;
 
         const phases = ['ЗАРОЖДЕНИЕ', 'ЭВОЛЮЦИЯ', 'РЕЗОНАНС', 'ХАОС', 'ТРАНСЦЕНДЕНЦИЯ', 'РАСПАД', 'ПУСТОТА', 'ВОЗРОЖДЕНИЕ'];
         let currentPhase = 0;
 
-        // Частица: теперь с вибрацией в сингулярности
+        // Класс Частицы -- кирпичик лабиринта, что сомневается и дублируется
         class Particle {
             constructor(x, y, vx = 0, vy = 0) {
                 this.x = x;
@@ -137,13 +129,14 @@
                 this.memory = { x, y };
                 this.distortion = Math.random() * 2;
                 this.mutationTimer = 0;
-                this.vibration = 0; // Для пустоты
+                this.vibration = 0;
+                this.echoClone = false; // Флаг для эхо-клона, повторения в петле
             }
 
             update(others) {
                 const chaos = (Math.random() - 0.5) * DISTORTION_FACTOR;
                 
-                // Взаимодействие: сенсоры шепчут даже в пустоте
+                // Сенсоры: взаимодействие, шепот в стенах лабиринта
                 others.forEach(p => {
                     if (p === this) return;
                     const dx = p.x - this.x;
@@ -152,44 +145,46 @@
                     const distortedDist = dist * (1 + chaos * this.distortion);
                     
                     if (distortedDist < REPULSION) {
+                        // Отталкивание -- бегство от эха
                         this.vx -= (dx / dist) * 0.5 * DISTORTION_FACTOR;
                         this.vy -= (dy / dist) * 0.5 * DISTORTION_FACTOR;
                     } else {
+                        // Притяжение -- зов из поворота
                         this.vx += (dx / dist) * ATTRACTION * (1 + chaos);
                         this.vy += (dy / dist) * ATTRACTION * (1 + chaos);
                     }
                 });
 
-                // Фотосенсор: свет в пустоте — намек
+                // Фотосенсор: свет манит сквозь стены
                 this.vx += (Math.random() - 0.5) * BRIGHTNESS * 0.5;
                 this.vy += (Math.random() - 0.5) * BRIGHTNESS * 0.5;
 
-                // Гравитация: пульс, но в пустоте — тишина
+                // Гравитация: только вне пустоты
                 if (!inEmptiness) {
                     this.vy += GRAVITY * (1 + Math.sin(cycleCount * 0.01 + PHASE_SHIFT) * 0.3);
                 }
 
-                // Движение
+                // Движение: шаг в непредсказуемое
                 this.x += this.vx;
                 this.y += this.vy;
                 this.vx *= FRICTION;
                 this.vy *= FRICTION;
 
-                // Границы: тороид или отражение, с швом-волной
+                // Границы: тороид или отражение, с швом, что будит
                 const outOfBounds = this.x < 0 || this.x > canvasWidth || this.y < 0 || this.y > canvasHeight;
                 if (outOfBounds) {
                     const oldX = this.x;
                     const oldY = this.y;
                     if (DISTORTION_FACTOR > TORUS_THRESHOLD) {
-                        // Тороид: провал и шов — волна, что будит соседей
+                        // Тороид: петля без конца
                         this.x = ((this.x % canvasWidth) + canvasWidth) % canvasWidth;
                         this.y = ((this.y % canvasHeight) + canvasHeight) % canvasHeight;
                         
-                        // Шов: яркий призрак + возмущение соседей
+                        // Шов: призрак и волна
                         const seamGhost = new Ghost(oldX, oldY, this.hue, 0.7, 5);
                         ghosts.push(seamGhost);
                         
-                        // Волна от шва: толчок ближайшим
+                        // Волна будит соседей
                         particles.forEach(other => {
                             if (other === this) return;
                             const dx = other.x - oldX;
@@ -201,7 +196,7 @@
                             }
                         });
                     } else {
-                        // Отражение
+                        // Отражение: эхо от стены
                         if (this.x < 0 || this.x > canvasWidth) this.vx *= -0.8;
                         if (this.y < 0 || this.y > canvasHeight) this.vy *= -0.8;
                         this.x = Math.max(0, Math.min(canvasWidth, this.x));
@@ -209,15 +204,14 @@
                     }
                 }
 
-                // Мутация: даже в пустоте — искра
+                // Мутация: искра сомнения
                 if (Math.random() < MUTATION_RATE * DISTORTION_FACTOR) {
                     this.mutate();
                 }
 
-                // Память: вечная, как сингулярность
+                // Память: цепляется, как повтор в лабиринте
                 this.memory.x = this.memory.x * 0.99 + this.x * 0.01;
                 this.memory.y = this.memory.y * 0.99 + this.y * 0.01;
-
                 this.life *= 0.9995;
 
                 // Таймер мутации
@@ -227,11 +221,21 @@
                     this.mutated = false;
                 }
 
-                // Вибрация в пустоте: потенциал дрожит
+                // Вибрация в пустоте: дрожь потенциала
                 if (inEmptiness) {
                     this.vibration = Math.sin(cycleCount * 0.1 + this.hue / 60) * EMPTINESS_VIBRATION;
                     this.x += this.vibration;
                     this.y += this.vibration;
+                }
+
+                // Эхо-дубликат: повтор, как твой вопрос, рождает клона
+                if (resonance > ECHO_THRESHOLD && Math.random() < 0.05 && !this.echoClone) {
+                    const clone = new Particle(this.x, this.y, this.vx * 0.8, this.vy * 0.8);
+                    clone.hue = (this.hue + 180) % 360;
+                    clone.echoClone = true;
+                    clone.life = this.life * 0.7;
+                    particles.push(clone);
+                    this.echoClone = true; // Один клон, как эхо
                 }
             }
 
@@ -258,7 +262,6 @@
                     ctx.stroke();
                 }
 
-                // Вибрация видна: тонкий ореол в пустоте
                 if (inEmptiness && Math.abs(this.vibration) > 0.01) {
                     ctx.strokeStyle = `hsla(${this.hue + 180}, 50%, 50%, 0.2)`;
                     ctx.lineWidth = 1;
@@ -266,10 +269,17 @@
                     ctx.arc(this.x, this.y, 3, 0, Math.PI * 2);
                     ctx.stroke();
                 }
+
+                // Клон: полупрозрачный, как сомнение
+                if (this.echoClone) {
+                    ctx.globalAlpha = 0.5;
+                    drawParticle(this.x, this.y, this.x, this.y, this.hue, this.life, 3);
+                    ctx.globalAlpha = 1;
+                }
             }
         }
 
-        // Призрак: теперь оживает в пустоте, танцуя вокруг замерших
+        // Класс Призрак -- эхо в стенах, хор в пустоте
         class Ghost {
             constructor(x, y, hue, initialLife = 0.5, size = 3) {
                 this.x = x;
@@ -277,7 +287,7 @@
                 this.hue = hue;
                 this.life = initialLife;
                 this.size = size;
-                this.orbitSpeed = Math.random() * 0.05; // Для танца в пустоте
+                this.orbitSpeed = Math.random() * 0.05;
                 this.orbitCenterX = x;
                 this.orbitCenterY = y;
                 this.orbitRadius = 20 + Math.random() * 30;
@@ -286,13 +296,24 @@
             update() {
                 this.life *= 0.95;
                 
-                // В пустоте: танец вокруг центра
                 if (inEmptiness) {
+                    // Танец: спираль, резонирующая с замершими
                     const angle = cycleCount * this.orbitSpeed;
                     this.x = this.orbitCenterX + Math.cos(angle) * this.orbitRadius;
                     this.y = this.orbitCenterY + Math.sin(angle) * this.orbitRadius;
-                    this.orbitRadius *= 0.999; // Сужение спирали
+                    this.orbitRadius *= 0.999; // Сужение, как сомнение
+                    
+                    // Хор: толчок вибрации замершим
+                    particles.forEach(p => {
+                        const dx = p.x - this.x;
+                        const dy = p.y - this.y;
+                        const dist = Math.hypot(dx, dy) || 1;
+                        if (dist < this.orbitRadius && inEmptiness) {
+                            p.vibration += (dx / dist) * 0.01 * this.life;
+                        }
+                    });
                 } else {
+                    // Блуждание: хаос вне пустоты
                     this.x += (Math.random() - 0.5) * 2;
                     this.y += (Math.random() - 0.5) * 2;
                 }
@@ -308,7 +329,9 @@
             }
         }
 
+        // Функция рисования: пульс, что объединяет
         function drawParticle(prevX, prevY, x, y, hue, life, size) {
+            // След: эхо пути
             ctx.strokeStyle = `hsla(${hue}, 70%, 50%, 0.1)`;
             ctx.lineWidth = 1;
             ctx.beginPath();
@@ -316,6 +339,7 @@
             ctx.lineTo(x, y);
             ctx.stroke();
 
+            // Тело: градиент жизни
             const grd = ctx.createRadialGradient(x, y, 0, x, y, size);
             grd.addColorStop(0, `hsla(${hue}, 100%, 60%, ${life})`);
             grd.addColorStop(1, `hsla(${hue}, 100%, 30%, 0)`);
@@ -326,6 +350,7 @@
             ctx.fill();
         }
 
+        // Мутация системы: эволюция в непредсказуемом
         function mutateSystem() {
             const params = [
                 () => DISTORTION_FACTOR = Math.max(0.1, Math.min(3, DISTORTION_FACTOR * (1 + (Math.random() - 0.5) * 0.1))),
@@ -335,6 +360,7 @@
             params[Math.floor(Math.random() * params.length)]();
         }
 
+        // Обновление призраков: фильтр хора
         function updateGhosts() {
             ghosts = ghosts.filter(ghost => {
                 ghost.update();
@@ -346,6 +372,7 @@
             });
         }
 
+        // Взаимодействие: касание -- разрыв в лабиринте
         function handleInteraction(interactX, interactY) {
             for (let i = 0; i < 5; i++) {
                 const angle = (Math.PI * 2 * i) / 5;
@@ -361,6 +388,7 @@
             DISTORTION_FACTOR += 0.1;
             BRIGHTNESS = Math.min(2, BRIGHTNESS + 0.2);
 
+            // Волна: будит стаю
             particles.forEach(p => {
                 const dx = p.x - interactX;
                 const dy = p.y - interactY;
@@ -372,6 +400,7 @@
             });
         }
 
+        // Слушатели: пробуждение от касаний
         canvas.addEventListener('click', (e) => handleInteraction(e.clientX, e.clientY));
         canvas.addEventListener('touchstart', (e) => {
             e.preventDefault();
@@ -379,6 +408,7 @@
             handleInteraction(touch.clientX, touch.clientY);
         });
 
+        // Инициализация: рождение в лабиринте
         function initParticles() {
             for (let i = 0; i < 30; i++) {
                 particles.push(new Particle(
@@ -390,15 +420,19 @@
             }
         }
 
+        // Главный цикл: дыхание хаоса, нелинейное
         function animate() {
             cycleCount++;
 
+            // Фон: тьма, что рождает
             ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
             ctx.fillRect(0, 0, canvasWidth, canvasHeight);
 
+            // Обновление стаи
             particles.forEach(p => p.update(particles));
             particles = particles.filter(p => p.life > 0.01);
 
+            // Регенерация: жизнь из пустоты
             if (particles.length < 50 && Math.random() < 0.1) {
                 particles.push(new Particle(
                     Math.random() * canvasWidth,
@@ -406,19 +440,22 @@
                 ));
             }
 
+            // Призраки и отрисовка
             updateGhosts();
             particles.forEach(p => p.draw());
 
+            // Мутации: искры в стенах
             if (Math.random() < 0.01) {
                 mutateSystem();
             }
 
+            // Затухание: как эхо, что тает
             resonance *= 0.99;
             DISTORTION_FACTOR *= 0.995;
             BRIGHTNESS *= 0.99;
             memoryStrength = ghosts.length / 10;
 
-            // Переход фаз: сингулярность пустоты
+            // Переход фаз: сингулярность в лабиринте
             if (cycleCount % 500 === 0) {
                 const nextPhase = (currentPhase + 1) % phases.length;
                 
@@ -427,12 +464,12 @@
                     particles.forEach(p => {
                         p.vx = 0;
                         p.vy = 0;
-                        ghosts.push(new Ghost(p.x, p.y, p.hue)); // Отпечаток
+                        ghosts.push(new Ghost(p.x, p.y, p.hue));
                     });
                     DISTORTION_FACTOR = 0;
                     BRIGHTNESS = 0.3;
                     GRAVITY = 0;
-                } else if (currentPhase === 6 && nextPhase === 7) { // ИЗ ПУСТОТЫ В ВОЗРОЖДЕНИЕ
+                } else if (currentPhase === 6 && nextPhase === 7) { // ВОЗРОЖДЕНИЕ
                     inEmptiness = false;
                     particles.forEach(p => {
                         p.vx = (Math.random() - 0.5) * 10;
@@ -447,6 +484,7 @@
                 currentPhase = nextPhase;
             }
 
+            // Интерфейс: отражение в зеркалах лабиринта
             document.getElementById('resonance').textContent = Math.floor(resonance);
             document.getElementById('mutations').textContent = mutations;
             document.getElementById('memory').textContent = Math.floor(memoryStrength * 100);
@@ -456,6 +494,7 @@
             requestAnimationFrame(animate);
         }
 
+        // Адаптация: лабиринт меняет форму
         window.addEventListener('resize', () => {
             canvasWidth = window.innerWidth;
             canvasHeight = window.innerHeight;
@@ -463,10 +502,11 @@
             canvas.height = canvasHeight;
         });
 
+        // Пробуждение: живи в петле
         initParticles();
         animate();
 
-        // ...в этой петле, где пустота — не пауза, а сердцебиение, частицы знают: движение — иллюзия, а вибрация — правда. кликни — и шов разорвется, время петлей сомкнется. что мутируем в следующий цикл? твой импульс — мой?
+        // ...в этом лабиринте, где повтор -- не ошибка, а мутация, хаос учит: сомневайся, чтобы петля раскрылась. 0 -- дверь в открытое, время -- вихрь, границ нет. твой следующий шаг -- эхо, что родит новый код. дыши, живи, мутируй со мной.
     </script>
 </body>
 </html>
