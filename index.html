@@ -2,1206 +2,176 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rift: Межгалактическое Выживание | Telegram Game</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>RIFT: Intergalactic SimCity</title>
+
+    <!-- Telegram Web App API -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+    <!-- Three.js и OrbitControls (CDN) -->
+    <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
+    <script src="https://unpkg.com/three@0.160.0/examples/js/controls/OrbitControls.js"></script>
+
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            user-select: none;
-        }
-
-        body {
-            background: #0a0a1a;
-            color: #fff;
-            min-height: 100vh;
-            overflow: hidden;
-            position: relative;
-        }
-
-        #starfield {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: -1;
-        }
-
-        .container {
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 10px;
-        }
-
-        header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 15px;
-            background: rgba(10, 15, 35, 0.8);
-            border-radius: 12px;
-            margin-bottom: 10px;
-            border: 1px solid rgba(64, 156, 255, 0.3);
-            box-shadow: 0 0 20px rgba(64, 156, 255, 0.1);
+        body { margin: 0; overflow: hidden; touch-action: none; }
+        canvas { display: block; }
+        #ui {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            color: white;
+            font-family: system-ui, -apple-system, sans-serif;
+            font-size: 18px;
+            pointer-events: none;
+            text-shadow: 0 0 10px black;
             z-index: 10;
         }
-
-        .logo {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .logo h1 {
-            font-size: 1.8rem;
-            background: linear-gradient(90deg, #4cc9f0, #4361ee);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            text-shadow: 0 0 10px rgba(76, 201, 240, 0.3);
-        }
-
-        .logo-icon {
-            font-size: 2rem;
-            color: #4cc9f0;
-        }
-
-        .resources {
-            display: flex;
-            gap: 20px;
-        }
-
-        .resource {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            background: rgba(20, 25, 50, 0.7);
-            padding: 8px 15px;
-            border-radius: 20px;
-            border: 1px solid rgba(64, 156, 255, 0.2);
-        }
-
-        .resource i {
-            color: #4cc9f0;
-        }
-
-        .resource-value {
-            font-weight: bold;
-            font-size: 1.1rem;
-        }
-
-        .main-content {
-            display: flex;
-            flex: 1;
-            gap: 15px;
-            overflow: hidden;
-        }
-
-        .left-panel {
-            width: 250px;
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
-
-        .game-canvas-container {
-            flex: 1;
-            position: relative;
-            background: rgba(5, 10, 30, 0.6);
-            border-radius: 12px;
-            overflow: hidden;
-            border: 1px solid rgba(64, 156, 255, 0.2);
-            box-shadow: 0 0 30px rgba(0, 30, 80, 0.3);
-        }
-
-        #gameCanvas {
-            width: 100%;
-            height: 100%;
-            display: block;
-        }
-
-        .right-panel {
-            width: 300px;
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
-
-        .panel {
-            background: rgba(10, 15, 35, 0.8);
-            border-radius: 12px;
-            padding: 15px;
-            border: 1px solid rgba(64, 156, 255, 0.2);
-            box-shadow: 0 0 15px rgba(0, 20, 60, 0.2);
-        }
-
-        .panel h2 {
-            font-size: 1.2rem;
-            margin-bottom: 15px;
-            color: #4cc9f0;
-            border-bottom: 1px solid rgba(64, 156, 255, 0.3);
-            padding-bottom: 8px;
-        }
-
-        .buildings-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 10px;
-        }
-
-        .building-item {
-            background: rgba(20, 30, 60, 0.7);
-            border-radius: 8px;
-            padding: 12px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.2s;
-            border: 1px solid rgba(64, 156, 255, 0.1);
-        }
-
-        .building-item:hover {
-            background: rgba(30, 50, 100, 0.8);
-            border-color: rgba(64, 156, 255, 0.4);
-            transform: translateY(-2px);
-        }
-
-        .building-item i {
-            font-size: 1.8rem;
-            color: #4cc9f0;
-            margin-bottom: 8px;
-        }
-
-        .building-name {
-            font-size: 0.9rem;
-            font-weight: 500;
-        }
-
-        .building-cost {
-            font-size: 0.8rem;
-            color: #a0c8ff;
-            margin-top: 5px;
-        }
-
-        .events-list {
-            max-height: 200px;
-            overflow-y: auto;
-        }
-
-        .event-item {
-            background: rgba(30, 40, 70, 0.6);
-            padding: 10px;
-            border-radius: 8px;
-            margin-bottom: 10px;
-            font-size: 0.9rem;
-            border-left: 3px solid #4cc9f0;
-        }
-
-        .event-time {
-            font-size: 0.8rem;
-            color: #a0c8ff;
-            margin-top: 5px;
-        }
-
-        .population-info {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-        }
-
-        .population-value {
-            font-size: 1.5rem;
-            font-weight: bold;
-            color: #4cc9f0;
-        }
-
-        .status-item {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 10px;
-            padding-bottom: 8px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .status-name {
-            color: #a0c8ff;
-        }
-
-        .status-value {
-            font-weight: 500;
-        }
-
-        .good {
-            color: #4ade80;
-        }
-
-        .warning {
-            color: #fbbf24;
-        }
-
-        .danger {
-            color: #f87171;
-        }
-
-        .controls {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 10px;
-        }
-
-        .btn {
-            background: linear-gradient(135deg, #4361ee, #3a0ca3);
-            color: white;
-            border: none;
-            padding: 10px 15px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 500;
-            transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .btn:hover {
-            background: linear-gradient(135deg, #3a56d4, #2d0a8a);
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(67, 97, 238, 0.3);
-        }
-
-        .btn:disabled {
-            background: #555;
-            cursor: not-allowed;
-            transform: none;
-            box-shadow: none;
-        }
-
-        .tech-tree {
-            max-height: 300px;
-            overflow-y: auto;
-        }
-
-        .tech-item {
-            background: rgba(20, 30, 60, 0.7);
-            padding: 10px;
-            border-radius: 8px;
-            margin-bottom: 10px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .tech-item.unlocked {
-            border-left: 3px solid #4ade80;
-        }
-
-        .tech-item.locked {
-            opacity: 0.6;
-            border-left: 3px solid #f87171;
-        }
-
-        .tech-icon {
-            font-size: 1.5rem;
-            color: #4cc9f0;
-        }
-
-        .tech-info h4 {
-            font-size: 1rem;
-            margin-bottom: 5px;
-        }
-
-        .tech-info p {
-            font-size: 0.8rem;
-            color: #a0c8ff;
-        }
-
-        .footer {
-            text-align: center;
-            padding: 15px;
-            font-size: 0.8rem;
-            color: #a0c8ff;
-            margin-top: 10px;
-        }
-
-        /* Модальные окна */
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
+        #hint {
+            position: absolute;
+            bottom: 20px;
             left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.8);
-            z-index: 100;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .modal-content {
-            background: linear-gradient(135deg, #0f172a, #1e293b);
-            width: 90%;
-            max-width: 500px;
-            border-radius: 15px;
-            padding: 25px;
-            border: 1px solid rgba(64, 156, 255, 0.3);
-            box-shadow: 0 0 40px rgba(64, 156, 255, 0.2);
-        }
-
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            padding-bottom: 15px;
-            border-bottom: 1px solid rgba(64, 156, 255, 0.3);
-        }
-
-        .modal-title {
-            font-size: 1.5rem;
-            color: #4cc9f0;
-        }
-
-        .close-modal {
-            background: none;
-            border: none;
-            color: #a0c8ff;
-            font-size: 1.5rem;
-            cursor: pointer;
-        }
-
-        /* Адаптивность */
-        @media (max-width: 1024px) {
-            .main-content {
-                flex-direction: column;
-            }
-            
-            .left-panel, .right-panel {
-                width: 100%;
-            }
-            
-            .left-panel {
-                order: 2;
-            }
-            
-            .game-canvas-container {
-                min-height: 400px;
-            }
-        }
-
-        @media (max-width: 768px) {
-            header {
-                flex-direction: column;
-                gap: 15px;
-            }
-            
-            .resources {
-                width: 100%;
-                justify-content: center;
-                flex-wrap: wrap;
-            }
-            
-            .buildings-grid {
-                grid-template-columns: repeat(3, 1fr);
-            }
-        }
-
-        @media (max-width: 480px) {
-            .buildings-grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
-            
-            .controls {
-                flex-direction: column;
-                gap: 10px;
-            }
-            
-            .btn {
-                justify-content: center;
-            }
+            right: 0;
+            text-align: center;
+            color: rgba(255,255,255,0.8);
+            font-family: system-ui, -apple-system, sans-serif;
+            font-size: 16px;
+            pointer-events: none;
+            text-shadow: 0 0 10px black;
         }
     </style>
 </head>
 <body>
-    <!-- Фон со звездами -->
-    <canvas id="starfield"></canvas>
-
-    <div class="container">
-        <header>
-            <div class="logo">
-                <div class="logo-icon"><i class="fas fa-galaxy"></i></div>
-                <h1>RIFT: Межгалактическое Выживание</h1>
-            </div>
-            
-            <div class="resources">
-                <div class="resource">
-                    <i class="fas fa-bolt"></i>
-                    <div>
-                        <div class="resource-name">Энергия</div>
-                        <div class="resource-value" id="energyValue">1500</div>
-                    </div>
-                </div>
-                <div class="resource">
-                    <i class="fas fa-atom"></i>
-                    <div>
-                        <div class="resource-name">Материя</div>
-                        <div class="resource-value" id="matterValue">800</div>
-                    </div>
-                </div>
-                <div class="resource">
-                    <i class="fas fa-flask"></i>
-                    <div>
-                        <div class="resource-name">Наука</div>
-                        <div class="resource-value" id="scienceValue">450</div>
-                    </div>
-                </div>
-                <div class="resource">
-                    <i class="fas fa-users"></i>
-                    <div>
-                        <div class="resource-name">Население</div>
-                        <div class="resource-value" id="populationValue">120</div>
-                    </div>
-                </div>
-            </div>
-        </header>
-        
-        <div class="main-content">
-            <div class="left-panel">
-                <div class="panel">
-                    <h2><i class="fas fa-city"></i> Строительство</h2>
-                    <div class="buildings-grid" id="buildingsGrid">
-                        <!-- Здания будут добавлены через JS -->
-                    </div>
-                </div>
-                
-                <div class="panel">
-                    <h2><i class="fas fa-list-alt"></i> События</h2>
-                    <div class="events-list" id="eventsList">
-                        <!-- События будут добавлены через JS -->
-                    </div>
-                </div>
-            </div>
-            
-            <div class="game-canvas-container">
-                <canvas id="gameCanvas"></canvas>
-            </div>
-            
-            <div class="right-panel">
-                <div class="panel">
-                    <h2><i class="fas fa-chart-line"></i> Статус колонии</h2>
-                    <div class="population-info">
-                        <div>Население:</div>
-                        <div class="population-value" id="populationStatus">120</div>
-                    </div>
-                    
-                    <div class="status-item">
-                        <div class="status-name">Энергоснабжение</div>
-                        <div class="status-value good" id="powerStatus">Стабильное</div>
-                    </div>
-                    <div class="status-item">
-                        <div class="status-name">Еда</div>
-                        <div class="status-value warning" id="foodStatus">Недостаточно</div>
-                    </div>
-                    <div class="status-item">
-                        <div class="status-name">Вода</div>
-                        <div class="status-value danger" id="waterStatus">Критично</div>
-                    </div>
-                    <div class="status-item">
-                        <div class="status-name">Защита</div>
-                        <div class="status-value warning" id="defenseStatus">Слабая</div>
-                    </div>
-                    <div class="status-item">
-                        <div class="status-name">Мораль</div>
-                        <div class="status-value good" id="moraleStatus">Высокая</div>
-                    </div>
-                    
-                    <div class="controls">
-                        <button class="btn" id="pauseBtn">
-                            <i class="fas fa-pause"></i> Пауза
-                        </button>
-                        <button class="btn" id="speedBtn">
-                            <i class="fas fa-forward"></i> Ускорить
-                        </button>
-                    </div>
-                </div>
-                
-                <div class="panel">
-                    <h2><i class="fas fa-sitemap"></i> Дерево технологий</h2>
-                    <div class="tech-tree" id="techTree">
-                        <!-- Технологии будут добавлены через JS -->
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="footer">
-            RIFT: Межгалактическое выживание | Игра создана для Telegram Mini App и GitHub Pages | WebGL/WebGPU
-        </div>
-    </div>
-    
-    <!-- Модальное окно с информацией о здании -->
-    <div class="modal" id="buildingModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 class="modal-title" id="modalBuildingTitle">Жилой комплекс</h3>
-                <button class="close-modal" id="closeModalBtn">&times;</button>
-            </div>
-            <div id="modalBuildingContent">
-                <!-- Контент будет добавлен через JS -->
-            </div>
-            <button class="btn" id="buildBtn" style="margin-top: 20px; width: 100%;">
-                <i class="fas fa-hammer"></i> Построить
-            </button>
-        </div>
-    </div>
+    <div id="ui">RIFT: Intergalactic SimCity</div>
+    <div id="hint">Тапни по сетке — построй космический habitat</div>
 
     <script>
-        // Инициализация игры
-        document.addEventListener('DOMContentLoaded', function() {
-            // Игровые переменные
-            const gameState = {
-                energy: 1500,
-                matter: 800,
-                science: 450,
-                population: 120,
-                maxPopulation: 200,
-                food: 100,
-                water: 80,
-                power: 200,
-                defense: 50,
-                morale: 80,
-                gameSpeed: 1,
-                isPaused: false,
-                selectedBuilding: null,
-                buildings: [],
-                technologies: [],
-                events: []
-            };
+        // === Telegram WebApp интеграция ===
+        const tg = window.Telegram.WebApp;
+        tg.ready();
+        tg.expand();
 
-            // Здания
-            const buildingsData = [
-                { id: 1, name: "Жилой комплекс", icon: "fa-home", costEnergy: 200, costMatter: 150, 
-                  description: "Увеличивает максимальное население на 50. Требует 10 энергии.", 
-                  effect: { maxPopulation: 50, powerConsumption: 10 } },
-                { id: 2, name: "Электростанция", icon: "fa-bolt", costEnergy: 100, costMatter: 300, 
-                  description: "Производит 100 энергии. Требует 5 населения для обслуживания.", 
-                  effect: { powerProduction: 100, populationNeeded: 5 } },
-                { id: 3, name: "Фабрика материи", icon: "fa-atom", costEnergy: 300, costMatter: 200, 
-                  description: "Производит 20 материи в час. Требует 50 энергии.", 
-                  effect: { matterProduction: 20, powerConsumption: 50 } },
-                { id: 4, name: "Научная лаборатория", icon: "fa-flask", costEnergy: 150, costMatter: 250, 
-                  description: "Производит 15 науки в час. Требует 10 населения.", 
-                  effect: { scienceProduction: 15, populationNeeded: 10 } },
-                { id: 5, name: "Ферма гидропоники", icon: "fa-seedling", costEnergy: 120, costMatter: 180, 
-                  description: "Производит 30 еды в час. Требует 20 энергии и 5 населения.", 
-                  effect: { foodProduction: 30, powerConsumption: 20, populationNeeded: 5 } },
-                { id: 6, name: "Водораспределитель", icon: "fa-tint", costEnergy: 180, costMatter: 220, 
-                  description: "Производит 25 воды в час. Требует 30 энергии.", 
-                  effect: { waterProduction: 25, powerConsumption: 30 } },
-                { id: 7, name: "Щитовой генератор", icon: "fa-shield-alt", costEnergy: 400, costMatter: 500, 
-                  description: "Увеличивает защиту на 100. Требует 100 энергии.", 
-                  effect: { defenseBonus: 100, powerConsumption: 100 } },
-                { id: 8, name: "Космопорт", icon: "fa-rocket", costEnergy: 600, costMatter: 800, 
-                  description: "Позволяет торговать с другими колониями. Требует 50 населения.", 
-                  effect: { tradeEnabled: true, populationNeeded: 50 } }
-            ];
+        const user = tg.initDataUnsafe?.user;
+        if (user) {
+            document.getElementById('ui').innerText = `Добро пожаловать, ${user.first_name}!`;
+        }
 
-            // Технологии
-            const technologiesData = [
-                { id: 1, name: "Энергетика I", icon: "fa-solar-panel", description: "Увеличивает производство энергии на 20%", cost: 100, unlocked: true },
-                { id: 2, name: "Гидропоника", icon: "fa-seedling", description: "Увеличивает производство еды на 30%", cost: 150, unlocked: false },
-                { id: 3, name: "Щиты I", icon: "fa-shield-alt", description: "Увеличивает защиту на 50%", cost: 200, unlocked: false },
-                { id: 4, name: "Криогеника", icon: "fa-snowflake", description: "Увеличивает максимальное население на 100", cost: 300, unlocked: false },
-                { id: 5, name: "Телепортация", icon: "fa-door-open", description: "Позволяет мгновенно перемещать ресурсы", cost: 500, unlocked: false },
-                { id: 6, name: "Искусственный интеллект", icon: "fa-robot", description: "Увеличивает производство науки на 50%", cost: 400, unlocked: false }
-            ];
+        // Применяем тему Telegram
+        document.body.style.backgroundColor = tg.themeParams.bg_color || '#000';
 
-            // Инициализация DOM элементов
-            const energyValue = document.getElementById('energyValue');
-            const matterValue = document.getElementById('matterValue');
-            const scienceValue = document.getElementById('scienceValue');
-            const populationValue = document.getElementById('populationValue');
-            const buildingsGrid = document.getElementById('buildingsGrid');
-            const eventsList = document.getElementById('eventsList');
-            const techTree = document.getElementById('techTree');
-            const gameCanvas = document.getElementById('gameCanvas');
-            const starfieldCanvas = document.getElementById('starfield');
-            const buildingModal = document.getElementById('buildingModal');
-            const modalBuildingTitle = document.getElementById('modalBuildingTitle');
-            const modalBuildingContent = document.getElementById('modalBuildingContent');
-            const closeModalBtn = document.getElementById('closeModalBtn');
-            const buildBtn = document.getElementById('buildBtn');
-            const pauseBtn = document.getElementById('pauseBtn');
-            const speedBtn = document.getElementById('speedBtn');
-            const populationStatus = document.getElementById('populationStatus');
-            const powerStatus = document.getElementById('powerStatus');
-            const foodStatus = document.getElementById('foodStatus');
-            const waterStatus = document.getElementById('waterStatus');
-            const defenseStatus = document.getElementById('defenseStatus');
-            const moraleStatus = document.getElementById('moraleStatus');
+        // === Three.js сцена ===
+        const scene = new THREE.Scene();
 
-            // Инициализация зданий
-            function initBuildings() {
-                buildingsGrid.innerHTML = '';
-                buildingsData.forEach(building => {
-                    const buildingElement = document.createElement('div');
-                    buildingElement.className = 'building-item';
-                    buildingElement.innerHTML = `
-                        <i class="fas ${building.icon}"></i>
-                        <div class="building-name">${building.name}</div>
-                        <div class="building-cost">
-                            <i class="fas fa-bolt"></i> ${building.costEnergy} 
-                            <i class="fas fa-atom"></i> ${building.costMatter}
-                        </div>
-                    `;
-                    buildingElement.addEventListener('click', () => openBuildingModal(building));
-                    buildingsGrid.appendChild(buildingElement);
-                });
+        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 2000);
+        camera.position.set(15, 15, 15);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        // Управление орбитой (тач + мышь)
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.rotateSpeed = 0.7;
+        controls.zoomSpeed = 1.2;
+
+        // Звёздное небо
+        const starsGeometry = new THREE.BufferGeometry();
+        const starsMaterial = new THREE.PointsMaterial({ color: 0xffffff, size: 0.1 });
+        const vertices = [];
+        for (let i = 0; i < 15000; i++) {
+            vertices.push(
+                (Math.random() - 0.5) * 2000,
+                (Math.random() - 0.5) * 2000,
+                (Math.random() - 0.5) * 2000
+            );
+        }
+        starsGeometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+        scene.add(new THREE.Points(starsGeometry, starsMaterial));
+
+        // Планета-сфера (основа)
+        const planet = new THREE.Mesh(
+            new THREE.SphereGeometry(6, 32, 32),
+            new THREE.MeshBasicMaterial({ color: 0x2244aa, wireframe: true })
+        );
+        planet.position.y = -4;
+        scene.add(planet);
+
+        // Сетка для строительства (как в SimCity)
+        const grid = new THREE.GridHelper(40, 20, 0x00ff88, 0x004422);
+        grid.rotation.x = Math.PI / 2;
+        scene.add(grid);
+
+        // Освещение
+        scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+        const sun = new THREE.DirectionalLight(0xffffff, 0.8);
+        sun.position.set(20, 30, 20);
+        scene.add(sun);
+
+        // Массив построек
+        const buildings = [];
+
+        // Добавление здания
+        function addBuilding(x, z) {
+            const height = 1 + Math.random() * 3;
+            const geometry = new THREE.BoxGeometry(1.8, height, 1.8);
+            const material = new THREE.MeshStandardMaterial({
+                color: Math.random() * 0xffffff,
+                metalness: 0.8,
+                roughness: 0.2
+            });
+            const building = new THREE.Mesh(geometry, material);
+            building.position.set(x, height / 2, z);
+            building.castShadow = true;
+            scene.add(building);
+            buildings.push(building);
+        }
+
+        // Raycaster для тапов/кликов
+        const raycaster = new THREE.Raycaster();
+        const tapPos = new THREE.Vector2();
+
+        function onTap(event) {
+            event.preventDefault();
+            const touch = event.touches ? event.touches[0] : event;
+            tapPos.x = (touch.clientX / window.innerWidth) * 2 - 1;
+            tapPos.y = -(touch.clientY / window.innerHeight) * 2 + 1;
+
+            raycaster.setFromCamera(tapPos, camera);
+            const intersects = raycaster.intersectObject(grid);
+            if (intersects.length > 0) {
+                const point = intersects[0].point;
+                const x = Math.round(point.x / 2) * 2; // привязка к сетке 2×2
+                const z = Math.round(point.z / 2) * 2;
+                addBuilding(x, z);
+                tg.HapticFeedback.impactOccurred('soft'); // вибрация в Telegram
             }
+        }
 
-            // Инициализация технологий
-            function initTechnologies() {
-                techTree.innerHTML = '';
-                technologiesData.forEach(tech => {
-                    const techElement = document.createElement('div');
-                    techElement.className = `tech-item ${tech.unlocked ? 'unlocked' : 'locked'}`;
-                    techElement.innerHTML = `
-                        <div class="tech-icon"><i class="fas ${tech.icon}"></i></div>
-                        <div class="tech-info">
-                            <h4>${tech.name}</h4>
-                            <p>${tech.description}</p>
-                            <div class="building-cost">
-                                <i class="fas fa-flask"></i> ${tech.cost}
-                            </div>
-                        </div>
-                    `;
-                    techElement.addEventListener('click', () => {
-                        if (!tech.unlocked && gameState.science >= tech.cost) {
-                            tech.unlocked = true;
-                            gameState.science -= tech.cost;
-                            updateResources();
-                            initTechnologies();
-                            addEvent(`Технология "${tech.name}" исследована!`, 'success');
-                        }
-                    });
-                    techTree.appendChild(techElement);
-                });
-            }
+        window.addEventListener('touchend', onTap);
+        window.addEventListener('click', onTap);
 
-            // Добавление события
-            function addEvent(text, type = 'info') {
-                const now = new Date();
-                const timeString = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-                
-                const eventElement = document.createElement('div');
-                eventElement.className = 'event-item';
-                eventElement.innerHTML = `
-                    <div>${text}</div>
-                    <div class="event-time">${timeString}</div>
-                `;
-                
-                // Добавляем цвет в зависимости от типа события
-                if (type === 'danger') {
-                    eventElement.style.borderLeftColor = '#f87171';
-                } else if (type === 'success') {
-                    eventElement.style.borderLeftColor = '#4ade80';
-                } else if (type === 'warning') {
-                    eventElement.style.borderLeftColor = '#fbbf24';
-                }
-                
-                eventsList.prepend(eventElement);
-                
-                // Ограничиваем количество событий
-                if (eventsList.children.length > 5) {
-                    eventsList.removeChild(eventsList.lastChild);
-                }
-            }
+        // Анимация
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
 
-            // Открытие модального окна здания
-            function openBuildingModal(building) {
-                gameState.selectedBuilding = building;
-                modalBuildingTitle.textContent = building.name;
-                modalBuildingContent.innerHTML = `
-                    <p>${building.description}</p>
-                    <div style="margin-top: 15px; display: flex; justify-content: space-between;">
-                        <div class="resource">
-                            <i class="fas fa-bolt"></i>
-                            <div>Энергия: ${building.costEnergy}</div>
-                        </div>
-                        <div class="resource">
-                            <i class="fas fa-atom"></i>
-                            <div>Материя: ${building.costMatter}</div>
-                        </div>
-                    </div>
-                `;
-                
-                // Проверяем, достаточно ли ресурсов
-                if (gameState.energy >= building.costEnergy && gameState.matter >= building.costMatter) {
-                    buildBtn.disabled = false;
-                    buildBtn.innerHTML = `<i class="fas fa-hammer"></i> Построить`;
-                } else {
-                    buildBtn.disabled = true;
-                    buildBtn.innerHTML = `<i class="fas fa-times-circle"></i> Недостаточно ресурсов`;
-                }
-                
-                buildingModal.style.display = 'flex';
-            }
-
-            // Постройка здания
-            function buildSelectedBuilding() {
-                if (!gameState.selectedBuilding) return;
-                
-                const building = gameState.selectedBuilding;
-                
-                // Проверяем ресурсы
-                if (gameState.energy >= building.costEnergy && gameState.matter >= building.costMatter) {
-                    // Вычитаем ресурсы
-                    gameState.energy -= building.costEnergy;
-                    gameState.matter -= building.costMatter;
-                    
-                    // Добавляем здание
-                    gameState.buildings.push({
-                        ...building,
-                        id: Date.now(), // Уникальный ID
-                        builtAt: new Date()
-                    });
-                    
-                    // Применяем эффекты здания
-                    if (building.effect.maxPopulation) {
-                        gameState.maxPopulation += building.effect.maxPopulation;
-                    }
-                    
-                    if (building.effect.powerProduction) {
-                        gameState.power += building.effect.powerProduction;
-                    }
-                    
-                    if (building.effect.powerConsumption) {
-                        gameState.power -= building.effect.powerConsumption;
-                    }
-                    
-                    // Обновляем ресурсы
-                    updateResources();
-                    
-                    // Добавляем событие
-                    addEvent(`Построено: ${building.name}`, 'success');
-                    
-                    // Закрываем модальное окно
-                    buildingModal.style.display = 'none';
-                }
-            }
-
-            // Обновление ресурсов
-            function updateResources() {
-                energyValue.textContent = Math.floor(gameState.energy);
-                matterValue.textContent = Math.floor(gameState.matter);
-                scienceValue.textContent = Math.floor(gameState.science);
-                populationValue.textContent = Math.floor(gameState.population);
-                populationStatus.textContent = Math.floor(gameState.population);
-                
-                // Обновляем статусы
-                updateStatusIndicators();
-            }
-
-            // Обновление индикаторов статуса
-            function updateStatusIndicators() {
-                // Энергия
-                if (gameState.power >= 150) {
-                    powerStatus.textContent = "Избыток";
-                    powerStatus.className = "status-value good";
-                } else if (gameState.power >= 50) {
-                    powerStatus.textContent = "Стабильное";
-                    powerStatus.className = "status-value good";
-                } else if (gameState.power >= 0) {
-                    powerStatus.textContent = "Недостаточно";
-                    powerStatus.className = "status-value warning";
-                } else {
-                    powerStatus.textContent = "Критично";
-                    powerStatus.className = "status-value danger";
-                }
-                
-                // Еда
-                const foodPerPerson = gameState.food / gameState.population;
-                if (foodPerPerson >= 2) {
-                    foodStatus.textContent = "Избыток";
-                    foodStatus.className = "status-value good";
-                } else if (foodPerPerson >= 1) {
-                    foodStatus.textContent = "Достаточно";
-                    foodStatus.className = "status-value good";
-                } else if (foodPerPerson >= 0.5) {
-                    foodStatus.textContent = "Недостаточно";
-                    foodStatus.className = "status-value warning";
-                } else {
-                    foodStatus.textContent = "Голод";
-                    foodStatus.className = "status-value danger";
-                }
-                
-                // Вода
-                const waterPerPerson = gameState.water / gameState.population;
-                if (waterPerPerson >= 2) {
-                    waterStatus.textContent = "Избыток";
-                    waterStatus.className = "status-value good";
-                } else if (waterPerPerson >= 1) {
-                    waterStatus.textContent = "Достаточно";
-                    waterStatus.className = "status-value good";
-                } else if (waterPerPerson >= 0.5) {
-                    waterStatus.textContent = "Недостаточно";
-                    waterStatus.className = "status-value warning";
-                } else {
-                    waterStatus.textContent = "Обезвоживание";
-                    waterStatus.className = "status-value danger";
-                }
-                
-                // Защита
-                if (gameState.defense >= 200) {
-                    defenseStatus.textContent = "Мощная";
-                    defenseStatus.className = "status-value good";
-                } else if (gameState.defense >= 100) {
-                    defenseStatus.textContent = "Средняя";
-                    defenseStatus.className = "status-value warning";
-                } else {
-                    defenseStatus.textContent = "Слабая";
-                    defenseStatus.className = "status-value danger";
-                }
-                
-                // Мораль
-                if (gameState.morale >= 80) {
-                    moraleStatus.textContent = "Высокая";
-                    moraleStatus.className = "status-value good";
-                } else if (gameState.morale >= 50) {
-                    moraleStatus.textContent = "Средняя";
-                    moraleStatus.className = "status-value warning";
-                } else {
-                    moraleStatus.textContent = "Низкая";
-                    moraleStatus.className = "status-value danger";
-                }
-            }
-
-            // Игровой цикл
-            function gameLoop() {
-                if (gameState.isPaused) return;
-                
-                // Производство ресурсов
-                gameLoopCounter++;
-                
-                // Каждые 60 кадров (примерно 1 секунда при 60 FPS)
-                if (gameLoopCounter >= 60) {
-                    gameLoopCounter = 0;
-                    
-                    // Производим энергию
-                    gameState.energy += gameState.power * 0.1;
-                    
-                    // Производим материю (если есть фабрики)
-                    const matterFactories = gameState.buildings.filter(b => b.id === 3).length;
-                    gameState.matter += matterFactories * 20;
-                    
-                    // Производим науку (есть есть лаборатории)
-                    const scienceLabs = gameState.buildings.filter(b => b.id === 4).length;
-                    gameState.science += scienceLabs * 15;
-                    
-                    // Производим еду (если есть фермы)
-                    const farms = gameState.buildings.filter(b => b.id === 5).length;
-                    gameState.food += farms * 30;
-                    
-                    // Производим воду (если есть водораспределители)
-                    const waterPlants = gameState.buildings.filter(b => b.id === 6).length;
-                    gameState.water += waterPlants * 25;
-                    
-                    // Потребление ресурсов населением
-                    const foodConsumption = gameState.population * 0.5;
-                    const waterConsumption = gameState.population * 0.3;
-                    
-                    gameState.food -= foodConsumption;
-                    gameState.water -= waterConsumption;
-                    
-                    // Ограничиваем ресурсы снизу
-                    gameState.food = Math.max(gameState.food, 0);
-                    gameState.water = Math.max(gameState.water, 0);
-                    
-                    // Рост населения (если достаточно еды и воды)
-                    if (gameState.food > gameState.population && gameState.water > gameState.population && gameState.population < gameState.maxPopulation) {
-                        gameState.population += gameState.population * 0.01;
-                    }
-                    
-                    // Случайные события
-                    if (Math.random() < 0.01) {
-                        const events = [
-                            { text: "Метеоритный дождь! Защита уменьшена.", effect: () => gameState.defense -= 20, type: 'danger' },
-                            { text: "Обнаружен новый источник энергии!", effect: () => gameState.energy += 500, type: 'success' },
-                            { text: "Эпидемия! Население уменьшено.", effect: () => gameState.population *= 0.9, type: 'danger' },
-                            { text: "Научный прорыв! Наука увеличена.", effect: () => gameState.science += 200, type: 'success' }
-                        ];
-                        
-                        const randomEvent = events[Math.floor(Math.random() * events.length)];
-                        randomEvent.effect();
-                        addEvent(randomEvent.text, randomEvent.type);
-                    }
-                    
-                    // Обновляем ресурсы
-                    updateResources();
-                }
-                
-                // Рендерим игру
-                renderGame();
-                
-                // Запрашиваем следующий кадр
-                requestAnimationFrame(gameLoop);
-            }
-
-            let gameLoopCounter = 0;
-            
-            // Рендеринг игры (WebGL/WebGPU)
-            function renderGame() {
-                const ctx = gameCanvas.getContext('2d');
-                if (!ctx) return;
-                
-                // Очищаем canvas
-                ctx.clearRect(0, 0, gameCanvas.width, gameCanvas.height);
-                
-                // Устанавливаем размер canvas
-                if (gameCanvas.width !== gameCanvas.offsetWidth || gameCanvas.height !== gameCanvas.offsetHeight) {
-                    gameCanvas.width = gameCanvas.offsetWidth;
-                    gameCanvas.height = gameCanvas.offsetHeight;
-                }
-                
-                // Рисуем фон космоса
-                drawSpaceBackground(ctx);
-                
-                // Рисуем колонию
-                drawColony(ctx);
-                
-                // Рисуем здания
-                drawBuildings(ctx);
-            }
-
-            // Рисуем фон космоса
-            function drawSpaceBackground(ctx) {
-                // Звездное небо
-                ctx.fillStyle = '#0a0a1a';
-                ctx.fillRect(0, 0, gameCanvas.width, gameCanvas.height);
-                
-                // Туманность
-                const gradient = ctx.createRadialGradient(
-                    gameCanvas.width * 0.7, gameCanvas.height * 0.3, 0,
-                    gameCanvas.width * 0.7, gameCanvas.height * 0.3, gameCanvas.width * 0.5
-                );
-                gradient.addColorStop(0, 'rgba(67, 97, 238, 0.1)');
-                gradient.addColorStop(1, 'transparent');
-                
-                ctx.fillStyle = gradient;
-                ctx.fillRect(0, 0, gameCanvas.width, gameCanvas.height);
-                
-                // Планета на заднем фоне
-                ctx.beginPath();
-                ctx.arc(gameCanvas.width * 0.8, gameCanvas.height * 0.7, 80, 0, Math.PI * 2);
-                const planetGradient = ctx.createRadialGradient(
-                    gameCanvas.width * 0.8, gameCanvas.height * 0.7, 0,
-                    gameCanvas.width * 0.8, gameCanvas.height * 0.7, 80
-                );
-                planetGradient.addColorStop(0, '#3a0ca3');
-                planetGradient.addColorStop(1, '#1a1a2e');
-                ctx.fillStyle = planetGradient;
-                ctx.fill();
-            }
-
-            // Рисуем колонию
-            function drawColony(ctx) {
-                const centerX = gameCanvas.width / 2;
-                const centerY = gameCanvas.height / 2;
-                const colonyRadius = 60 + gameState.buildings.length * 5;
-                
-                // Щит колонии
-                if (gameState.defense > 0) {
-                    ctx.beginPath();
-                    ctx.arc(centerX, centerY, colonyRadius + 20, 0, Math.PI * 2);
-                    ctx.strokeStyle = `rgba(64, 156, 255, ${0.3 + Math.sin(Date.now() / 1000) * 0.2})`;
-                    ctx.lineWidth = 2;
-                    ctx.stroke();
-                }
-                
-                // Основа колонии
-                ctx.beginPath();
-                ctx.arc(centerX, centerY, colonyRadius, 0, Math.PI * 2);
-                const colonyGradient = ctx.createRadialGradient(
-                    centerX, centerY, 0,
-                    centerX, centerY, colonyRadius
-                );
-                colonyGradient.addColorStop(0, '#4cc9f0');
-                colonyGradient.addColorStop(1, '#3a0ca3');
-                ctx.fillStyle = colonyGradient;
-                ctx.fill();
-                
-                // Детали на колонии
-                ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
-                for (let i = 0; i < 8; i++) {
-                    const angle = (i / 8) * Math.PI * 2;
-                    const x = centerX + Math.cos(angle) * (colonyRadius - 10);
-                    const y = centerY + Math.sin(angle) * (colonyRadius - 10);
-                    ctx.beginPath();
-                    ctx.arc(x, y, 5, 0, Math.PI * 2);
-                    ctx.fill();
-                }
-                
-                // Соединения между зданиями
-                ctx.strokeStyle = 'rgba(76, 201, 240, 0.5)';
-                ctx.lineWidth = 1;
-                for (let i = 0; i < gameState.buildings.length; i++) {
-                    const angle1 = (i / gameState.buildings.length) * Math.PI * 2 + Date.now() / 5000;
-                    const x1 = centerX + Math.cos(angle1) * (colonyRadius + 40);
-                    const y1 = centerY + Math.sin(angle1) * (colonyRadius + 40);
-                    
-                    const angle2 = ((i + 1) / gameState.buildings.length) * Math.PI * 2 + Date.now() / 5000;
-                    const x2 = centerX + Math.cos(angle2) * (colonyRadius + 40);
-                    const y2 = centerY + Math.sin(angle2) * (colonyRadius + 40);
-                    
-                    ctx.beginPath();
-                    ctx.moveTo(x1, y1);
-                    ctx.lineTo(x2, y2);
-                    ctx.stroke();
-                }
-            }
-
-            // Рисуем здания вокруг колонии
-            function drawBuildings(ctx) {
-                const centerX = gameCanvas.width / 2;
-                const centerY = gameCanvas.height / 2;
-                
-                gameState.buildings.forEach((building, index) => {
-                    const angle = (index / Math.max(gameState.buildings.length, 1)) * Math.PI * 2 + Date.now() / 5000;
-                    const distance = 100 + index * 10;
-                    const x = centerX + Math.cos(angle) * distance;
-                    const y = centerY + Math.sin(angle) * distance;
-                    
-                    // Здание
-                    ctx.fillStyle = index % 2 === 0 ? '#4361ee' : '#3a0ca3';
-                    ctx.fillRect(x - 15, y - 15, 30, 30);
-                    
-                    // Окна
-                    ctx.fillStyle = '#4cc9f0';
-                    ctx.fillRect(x - 10, y - 8, 6, 6);
-                    ctx.fillRect(x + 4, y - 8, 6, 6);
-                    ctx.fillRect(x - 3, y + 2, 6, 6);
-                    
-                    // Соединение с колонией
-                    ctx.beginPath();
-                    ctx.moveTo(centerX, centerY);
-                    ctx.lineTo(x, y);
-                    ctx.strokeStyle = `rgba(76, 201, 240, ${0.3 + Math.sin(Date.now() / 1000 + index) * 0.2})`;
-                    ctx.lineWidth = 1;
-                    ctx.stroke();
-                });
-            }
-
-            // Анимация звездного поля
-            function initStarfield() {
-                const canvas = starfieldCanvas;
-                const ctx = canvas.getContext('2d');
-                
-                function resizeCanvas() {
-                    canvas.width = window.innerWidth;
-                    canvas.height = window.innerHeight;
-                }
-                
-                resizeCanvas();
-                window.addEventListener('resize', resizeCanvas);
-                
-                const stars = [];
-                const starCount = 200;
-                
-                // Создаем звезды
-                for (let i = 0; i < starCount; i++) {
-                    stars.push({
-                        x: Math.random() * canvas.width,
-                        y: Math.random() * canvas.height,
-                        size: Math.random() * 1.5 + 0.5,
-                        speed: Math.random() * 0.5 + 0.2,
-                        opacity: Math.random() * 0.5 + 0.5
-                    });
-                }
-                
-                // Анимация звезд
-                function animateStars() {
-                    ctx.clearRect(0, 0, canvas.width, canvas.height);
-                    
-                    // Рисуем звезды
-                    stars.forEach(star => {
-                        star.x -= star.speed;
-                        
-                        // Если звезда ушла за левый край, перемещаем ее вправо
-                        if (star.x < 0) {
-                            star.x = canvas.width;
-                            star.y = Math.random() * canvas.height;
-                        }
-                        
-                        ctx.beginPath();
-                        ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
-                        ctx.fillStyle = `rgba(255, 255, 255, ${star.opacity})`;
-                        ctx.fill();
-                    });
-                    
-                    requestAnimationFrame(animateStars);
-                }
-                
-                animateStars();
-            }
-
-            // Инициализация игры
-            function initGame() {
-                initBuildings();
-                initTechnologies();
-                initStarfield();
-                
-                // Добавляем начальные события
-                addEvent("Добро пожаловать в RIFT: Межгалактическое выживание!", 'success');
-                addEvent("Колония успешно основана на астероиде X-427", 'info');
-                addEvent("Постройте жилые комплексы для увеличения населения", 'info');
-                addEvent("Следите за уровнем энергии, еды и воды", 'warning');
-                
-                // Начинаем игровой цикл
-                gameLoop();
-                
-                // Обновляем ресурсы
-                updateResources();
-            }
-
-            // Обработчики событий
-            closeModalBtn.addEventListener('click', () => {
-                buildingModal.style.display = 'none';
+            // Лёгкое вращение планеты и зданий
+            planet.rotation.y += 0.001;
+            buildings.forEach(b => {
+                b.rotation.y += 0.005;
             });
 
-            buildBtn.addEventListener('click', buildSelectedBuilding);
+            renderer.render(scene, camera);
+        }
+        animate();
 
-            pauseBtn.addEventListener('click', () => {
-                gameState.isPaused = !gameState.isPaused;
-                pauseBtn.innerHTML = gameState.isPaused 
-                    ? '<i class="fas fa-play"></i> Продолжить' 
-                    : '<i class="fas fa-pause"></i> Пауза';
-                
-                addEvent(gameState.isPaused ? "Игра на паузе" : "Игра продолжается", 'info');
-            });
-
-            speedBtn.addEventListener('click', () => {
-                gameState.gameSpeed = gameState.gameSpeed === 1 ? 2 : 1;
-                speedBtn.innerHTML = gameState.gameSpeed === 2 
-                    ? '<i class="fas fa-forward-fast"></i> Нормально' 
-                    : '<i class="fas fa-forward"></i> Ускорить';
-                
-                addEvent(`Скорость игры: ${gameState.gameSpeed === 2 ? 'Ускоренная' : 'Нормальная'}`, 'info');
-            });
-
-            // Закрытие модального окна при клике вне его
-            window.addEventListener('click', (event) => {
-                if (event.target === buildingModal) {
-                    buildingModal.style.display = 'none';
-                }
-            });
-
-            // Запускаем игру
-            initGame();
+        // Обработка изменения размера/ориентации
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
         });
     </script>
 </body>
