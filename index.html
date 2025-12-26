@@ -1,204 +1,302 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>RIFT: Colony Builder</title>
+<title>RIFT: Colony Builder - Reborn</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Rajdhani:wght@400;600&display=swap" rel="stylesheet">
 <style>
 :root {
-    --bg-color: #0f172a;
-    --panel-bg: #1e293b;
-    --accent-primary: #06b6d4;
-    --accent-secondary: #d946ef;
-    --success: #22c55e;
-    --danger: #ef4444;
-    --warning: #fbbf24;
-    --text-main: #f8fafc;
-    --text-muted: #94a3b8;
-    --grid-line: #334155;
-    --cell-size: clamp(30px, 9vmin, 60px);
+    --bg-color: #050508;
+    --panel-bg: rgba(20, 25, 35, 0.85);
+    --accent-cyan: #00f3ff;
+    --accent-pink: #ff0055;
+    --accent-gold: #ffd700;
+    --accent-green: #00ff9d;
+    --text-main: #e0e6ed;
+    --text-dim: #64748b;
+    --grid-line: rgba(0, 243, 255, 0.1);
+    --cell-size: clamp(35px, 11vmin, 65px);
+    --neon-shadow: 0 0 10px rgba(0, 243, 255, 0.3), 0 0 20px rgba(0, 243, 255, 0.1);
+    --danger-shadow: 0 0 10px rgba(255, 0, 85, 0.4);
 }
+
+/* Базовые стили и сброс */
 * { box-sizing: border-box; user-select: none; -webkit-tap-highlight-color: transparent; }
 body {
     margin: 0; padding: 0; background-color: var(--bg-color); color: var(--text-main);
-    font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-    overflow: hidden; height: 100vh; display: flex; flex-direction: column;
+    font-family: 'Rajdhani', sans-serif; overflow: hidden; height: 100vh; 
+    display: flex; flex-direction: column;
+    background-image: 
+        radial-gradient(circle at 50% 50%, #111927 0%, #050508 100%);
 }
+
+/* CRT Эффект (сканирующие линии) */
+body::after {
+    content: " "; display: block; position: absolute; top: 0; left: 0; bottom: 0; right: 0;
+    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+    z-index: 999; pointer-events: none; background-size: 100% 2px, 3px 100%;
+}
+
+/* Верхняя панель */
 header {
-    background: var(--panel-bg); padding: 10px 15px;
-    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.3); z-index: 10;
-    border-bottom: 1px solid var(--grid-line);
+    background: var(--panel-bg); backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--grid-line); padding: 8px 15px;
+    z-index: 10; box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+    display: flex; flex-direction: column; gap: 5px;
 }
 .header-top {
-    display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;
+    display: flex; justify-content: space-between; align-items: center;
 }
 h1 {
-    margin: 0; font-size: 1.2rem; font-weight: 800; letter-spacing: 1px;
-    background: linear-gradient(to right, var(--accent-primary), var(--accent-secondary));
-    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-    text-transform: uppercase;
+    margin: 0; font-family: 'Orbitron', sans-serif; font-size: 1.4rem;
+    color: var(--accent-cyan); text-shadow: 0 0 8px var(--accent-cyan);
+    letter-spacing: 2px;
 }
+.header-controls button {
+    background: none; border: 1px solid var(--text-dim); color: var(--text-dim);
+    padding: 2px 8px; font-family: 'Rajdhani'; font-size: 0.8rem; cursor: pointer;
+    border-radius: 4px; transition: 0.2s;
+}
+.header-controls button:hover { border-color: var(--accent-cyan); color: var(--accent-cyan); }
+
 .stats-bar {
-    display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
 }
 .stat-item {
     display: flex; flex-direction: column; align-items: center;
-    background: rgba(0,0,0,0.2); padding: 6px; border-radius: 6px; font-size: 0.8rem;
+    background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05);
+    padding: 4px; border-radius: 4px; position: relative; overflow: hidden;
 }
-.stat-label { font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; }
-.stat-value { font-weight: bold; font-family: 'Courier New', monospace; }
+.stat-item::after {
+    content: ''; position: absolute; bottom: 0; left: 0; height: 2px;
+    width: 100%; background: currentColor; opacity: 0.3;
+}
+.stat-label { font-size: 0.7rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; }
+.stat-value { 
+    font-weight: 700; font-size: 1.1rem; font-family: 'Orbitron', monospace; text-shadow: 0 0 5px currentColor;
+}
 
+/* Цвета ресурсов */
+.res-credits { color: var(--accent-gold); }
+.res-energy { color: var(--accent-cyan); }
+.res-pop { color: var(--accent-pink); }
+.res-happy { color: var(--accent-green); }
+
+/* Основное игровое поле */
 main {
     flex: 1; display: flex; justify-content: center; align-items: center;
-    overflow: auto; position: relative;
-    background-image: radial-gradient(var(--grid-line) 1px, transparent 1px);
-    background-size: 20px 20px;
+    overflow: hidden; position: relative; perspective: 1000px;
 }
 .city-grid {
     display: grid;
     grid-template-columns: repeat(8, var(--cell-size));
     grid-template-rows: repeat(8, var(--cell-size));
-    gap: 2px; padding: 10px;
-    background: rgba(0,0,0,0.5); border: 1px solid var(--grid-line); border-radius: 8px;
+    gap: 6px; padding: 15px;
+    background: rgba(0,0,0,0.3); border: 1px solid var(--grid-line);
+    border-radius: 12px; box-shadow: inset 0 0 30px rgba(0,0,0,0.8);
+    transform-style: preserve-3d;
+    transition: transform 0.5s ease;
 }
+
+/* Клетки */
 .cell {
-    background-color: var(--panel-bg); border: 1px solid var(--grid-line);
-    border-radius: 4px; display: flex; flex-direction: column;
+    background: rgba(255,255,255,0.02); border: 1px solid var(--grid-line);
+    border-radius: 6px; display: flex; flex-direction: column;
     justify-content: center; align-items: center;
-    font-size: calc(var(--cell-size) * 0.6); cursor: pointer;
-    position: relative; transition: all 0.2s ease;
+    font-size: calc(var(--cell-size) * 0.5); cursor: pointer;
+    position: relative; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 0 5px rgba(0,0,0,0.3);
 }
-.cell:hover { border-color: var(--text-muted); transform: scale(1.05); z-index: 2; }
-.cell .icon { font-size: calc(var(--cell-size) * 0.7); margin-bottom: 2px; }
-.cell .info { font-size: calc(var(--cell-size) * 0.25); color: var(--text-muted); }
+.cell:hover { 
+    background: rgba(0, 243, 255, 0.1); 
+    border-color: var(--accent-cyan); 
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: 0 5px 15px rgba(0, 243, 255, 0.15);
+    z-index: 5;
+}
+.cell .icon { filter: drop-shadow(0 0 5px rgba(255,255,255,0.3)); transition: transform 0.3s; }
+.cell:hover .icon { transform: scale(1.1); }
 
-.building-residential { color: #60a5fa; text-shadow: 0 0 8px #60a5fa; }
-.building-industrial { color: #f87171; text-shadow: 0 0 8px #f87171; }
-.building-commercial { color: #fbbf24; text-shadow: 0 0 8px #fbbf24; }
-.building-park { color: #4ade80; text-shadow: 0 0 8px #4ade80; }
+/* Типы зданий */
+.cell.building-residential { border-color: rgba(240, 100, 100, 0.3); background: linear-gradient(135deg, rgba(240,100,100,0.05), transparent); }
+.cell.building-industrial { border-color: rgba(6, 182, 212, 0.3); background: linear-gradient(135deg, rgba(6,182,212,0.05), transparent); }
+.cell.building-commercial { border-color: rgba(251, 191, 36, 0.3); background: linear-gradient(135deg, rgba(251,191,36,0.05), transparent); }
+.cell.building-park { border-color: rgba(74, 222, 128, 0.3); background: linear-gradient(135deg, rgba(74,222,128,0.05), transparent); }
 
+/* Индикаторы на клетках */
+.cell-indicators {
+    position: absolute; bottom: 2px; right: 2px; display: flex; gap: 2px; font-size: 0.6rem;
+}
+
+/* Панель управления снизу */
 .controls {
     background: var(--panel-bg); border-top: 1px solid var(--grid-line);
-    padding: 10px; z-index: 20;
+    padding: 10px 15px; z-index: 20;
+    backdrop-filter: blur(10px);
 }
 .tools-scroll {
-    display: flex; gap: 12px; overflow-x: auto; padding: 5px 0;
+    display: flex; gap: 10px; overflow-x: auto; padding-bottom: 5px;
     scrollbar-width: none;
 }
 .tools-scroll::-webkit-scrollbar { display: none; }
-.tool-btn {
-    background: rgba(255,255,255,0.05); border: 1px solid var(--grid-line);
-    border-radius: 10px; padding: 10px 14px; min-width: 90px;
-    display: flex; flex-direction: column; align-items: center;
-    cursor: pointer; transition: all 0.2s; color: var(--text-muted); flex-shrink: 0;
-}
-.tool-btn.selected {
-    background: rgba(6, 182, 212, 0.25); border-color: var(--accent-primary);
-    color: var(--accent-primary); transform: translateY(-3px);
-}
-.tool-icon { font-size: 1.8rem; margin-bottom: 6px; }
-.tool-name { font-size: 0.75rem; font-weight: bold; }
-.tool-cost { font-size: 0.7rem; color: var(--text-muted); }
-.tool-btn.selected .tool-cost { color: var(--accent-primary); }
 
+.tool-btn {
+    background: rgba(0,0,0,0.4); border: 1px solid var(--grid-line);
+    border-radius: 8px; padding: 8px 12px; min-width: 85px;
+    display: flex; flex-direction: column; align-items: center;
+    cursor: pointer; transition: all 0.2s; color: var(--text-dim); flex-shrink: 0;
+    position: relative; overflow: hidden;
+}
+.tool-btn:hover { border-color: var(--text-main); color: var(--text-main); background: rgba(255,255,255,0.05); }
+.tool-btn.selected {
+    background: rgba(0, 243, 255, 0.15); border-color: var(--accent-cyan);
+    color: var(--accent-cyan); box-shadow: var(--neon-shadow);
+}
+.tool-icon { font-size: 1.6rem; margin-bottom: 4px; }
+.tool-name { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; }
+.tool-cost { font-size: 0.7rem; font-family: 'Orbitron'; margin-top: 2px; }
+
+/* Модальные окна */
 .modal-overlay {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-    background: rgba(0,0,0,0.9); display: flex; justify-content: center; align-items: center;
-    z-index: 100; backdrop-filter: blur(8px); opacity: 0; pointer-events: none; transition: opacity 0.3s;
+    background: rgba(0,0,0,0.85); display: flex; justify-content: center; align-items: center;
+    z-index: 100; backdrop-filter: blur(5px); opacity: 0; pointer-events: none; transition: opacity 0.3s;
 }
 .modal-overlay.open { opacity: 1; pointer-events: auto; }
 .modal {
-    background: var(--panel-bg); border: 2px solid var(--accent-primary);
-    padding: 30px; border-radius: 16px; max-width: 90%; width: 420px;
-    text-align: center; box-shadow: 0 0 30px rgba(6, 182, 212, 0.4);
+    background: rgba(15, 20, 30, 0.95); border: 1px solid var(--accent-cyan);
+    padding: 30px; border-radius: 12px; max-width: 90%; width: 400px;
+    text-align: center; box-shadow: 0 0 40px rgba(0, 243, 255, 0.15);
+    transform: scale(0.9); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    position: relative;
 }
-.modal h2 { margin-top: 0; color: var(--accent-primary); font-size: 1.5rem; }
-.modal p { color: var(--text-muted); line-height: 1.6; }
+.modal-overlay.open .modal { transform: scale(1); }
+.modal::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, transparent, var(--accent-cyan), transparent);
+}
+.modal h2 { margin-top: 0; font-family: 'Orbitron'; color: var(--accent-cyan); margin-bottom: 20px; }
+.modal p { color: var(--text-main); line-height: 1.6; font-size: 1rem; margin: 10px 0; }
 .btn-primary {
-    background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
-    border: none; padding: 14px 28px; color: white; font-weight: bold;
-    border-radius: 8px; cursor: pointer; margin-top: 20px; width: 100%;
-    text-transform: uppercase; letter-spacing: 1.5px; font-size: 1.1rem;
+    background: linear-gradient(90deg, var(--accent-cyan), #00a8ff);
+    border: none; padding: 12px 30px; color: #000; font-weight: 800; font-family: 'Orbitron';
+    border-radius: 4px; cursor: pointer; margin-top: 25px; width: 100%;
+    text-transform: uppercase; letter-spacing: 1px; transition: 0.2s;
+    clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
 }
-.btn-primary:active { transform: scale(0.98); }
+.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 0 15px rgba(0, 243, 255, 0.5); }
+.btn-primary:active { transform: translateY(1px); }
 
+/* Всплывающие сообщения (Toast) */
 .toast-container {
-    position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%);
+    position: fixed; top: 80px; right: 20px; left: 20px;
     display: flex; flex-direction: column; gap: 10px; z-index: 50; pointer-events: none;
 }
 .toast {
-    background: rgba(0,0,0,0.9); border-left: 5px solid var(--accent-primary);
-    color: white; padding: 12px 24px; border-radius: 8px; font-size: 1rem;
-    animation: slideUp 0.4s ease-out; box-shadow: 0 6px 20px rgba(0,0,0,0.6);
-    min-width: 200px; text-align: center;
+    background: rgba(0, 0, 0, 0.9); border-left: 4px solid var(--accent-cyan);
+    color: white; padding: 12px 20px; border-radius: 4px; font-size: 0.9rem;
+    animation: slideIn 0.3s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: space-between;
 }
-.toast.error { border-left-color: var(--danger); }
-@keyframes slideUp {
-    from { transform: translateY(30px); opacity: 0; }
-    to { transform: translateY(0); opacity: 1; }
+.toast.error { border-left-color: var(--accent-pink); }
+@keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+/* Всплывающий текст над клетками */
+.floater {
+    position: absolute; font-weight: bold; font-size: 0.9rem; pointer-events: none;
+    animation: floatUpFade 1.2s forwards; z-index: 30; text-shadow: 0 0 2px black;
+    font-family: 'Orbitron';
+}
+@keyframes floatUpFade {
+    0% { transform: translateY(0); opacity: 1; }
+    100% { transform: translateY(-30px); opacity: 0; }
 }
 
-.floater {
-    position: absolute; font-weight: bold; font-size: 0.9rem;
-    pointer-events: none; animation: floatUp 1.2s forwards; z-index: 10;
+/* Тултип (подсказка) */
+#tooltip {
+    position: absolute; background: rgba(10, 10, 15, 0.95); border: 1px solid var(--text-dim);
+    color: #fff; padding: 8px 12px; border-radius: 4px; font-size: 0.8rem;
+    pointer-events: none; opacity: 0; transition: opacity 0.2s; z-index: 100;
+    max-width: 200px; box-shadow: 0 4px 10px rgba(0,0,0,0.8);
 }
-@keyframes floatUp {
-    0% { transform: translateY(0); opacity: 1; }
-    100% { transform: translateY(-40px); opacity: 0; }
+#tooltip strong { color: var(--accent-cyan); display: block; margin-bottom: 4px; }
+
+/* Анимация тряски */
+.shake { animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both; }
+@keyframes shake {
+    10%, 90% { transform: translate3d(-1px, 0, 0); }
+    20%, 80% { transform: translate3d(2px, 0, 0); }
+    30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+    40%, 60% { transform: translate3d(4px, 0, 0); }
 }
+
+/* Фоновые частицы (звезды) canvas */
+#bgCanvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; pointer-events: none; opacity: 0.5; }
+
 </style>
 </head>
 <body>
 
-<!-- Welcome Modal -->
+<canvas id="bgCanvas"></canvas>
+
+<!-- Стартовое окно -->
 <div id="startModal" class="modal-overlay open">
     <div class="modal">
-        <h2>Welcome to RIFT</h2>
-        <p>Build a thriving colony in the dimensional void.</p>
-        <p><strong>🏠 Hab-Dome</strong> → Population<br>
-           <strong>⚡ Reactor</strong> → Energy<br>
-           <strong>🏢 Trade Hub</strong> → Income (needs pop & energy)<br>
-           <strong>🌳 Bio-Dome</strong> → Happiness → Faster pop growth</p>
-        <p style="color: var(--danger)">⚠️ Don't let Credits or Energy go negative!</p>
-        <button class="btn-primary" onclick="startGame()">Initialize Colony</button>
+        <h2>RIFT PROTOCOL</h2>
+        <p>Инициализация колонии в измерении RIFT.</p>
+        <div style="text-align: left; background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px; font-size: 0.9rem; margin: 15px 0;">
+            <div style="margin-bottom: 8px"><span style="color:var(--accent-pink)">🏠 Hab-Dome</span> — Увеличивает лимит населения</div>
+            <div style="margin-bottom: 8px"><span style="color:var(--accent-cyan)">⚡ Reactor</span> — Производит энергию</div>
+            <div style="margin-bottom: 8px"><span style="color:var(--accent-gold)">🏢 Trade Hub</span> — Увеличивает доход с населения</div>
+            <div><span style="color:var(--accent-green)">🌳 Bio-Dome</span> — Повышает счастье и рост</div>
+        </div>
+        <p style="color: var(--accent-pink); font-size: 0.85rem">⚠️ Следите за энергетическим балансом.</p>
+        <button class="btn-primary" onclick="startGame()">Запустить систему</button>
     </div>
 </div>
 
-<!-- Game Over Modal -->
+<!-- Game Over окно -->
 <div id="gameOverModal" class="modal-overlay">
     <div class="modal">
-        <h2 id="goTitle" style="color: var(--danger)">COLONY COLLAPSE</h2>
-        <p id="goMessage">The rift has consumed your colony.</p>
-        <div style="margin: 20px 0; background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px;">
-            <div>Final Population: <span id="goPop" style="color:#60a5fa; font-weight:bold">0</span></div>
-            <div>Cycles Survived: <span id="goCycle" style="color:white; font-weight:bold">0</span></div>
-            <div>Happiness: <span id="goHappiness" style="color:#4ade80; font-weight:bold">0%</span></div>
+        <h2 id="goTitle" style="color: var(--accent-pink)">СБОЙ СИСТЕМЫ</h2>
+        <p id="goMessage">Колония погибла.</p>
+        <div style="margin: 20px 0; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; text-align: left;">
+            <div>Население:</div><div id="goPop" style="text-align: right; font-weight:bold; color:var(--accent-pink)">0</div>
+            <div>Циклов:</div><div id="goCycle" style="text-align: right; font-weight:bold">0</div>
+            <div>Счастье:</div><div id="goHappiness" style="text-align: right; font-weight:bold; color:var(--accent-green)">0%</div>
         </div>
-        <button class="btn-primary" onclick="resetGame()">Reboot System</button>
+        <button class="btn-primary" onclick="resetGame()">Перезагрузка</button>
     </div>
 </div>
+
+<!-- Подсказка -->
+<div id="tooltip"></div>
 
 <header>
     <div class="header-top">
         <h1>RIFT</h1>
-        <div style="font-size: 0.8rem; color: var(--accent-primary)">Cycle: <span id="cycleDisplay">0</span></div>
+        <div class="header-controls">
+            <span style="color:var(--accent-cyan); font-family:'Orbitron'; font-size: 0.9rem; margin-right: 10px;">CYC: <span id="cycleDisplay">0</span></span>
+            <button onclick="clearSave()">Сброс</button>
+        </div>
     </div>
     <div class="stats-bar">
-        <div class="stat-item">
-            <span class="stat-label">Credits</span>
-            <span class="stat-value" id="moneyDisplay" style="color: #fbbf24">150</span>
+        <div class="stat-item res-credits">
+            <span class="stat-label">Кредиты</span>
+            <span class="stat-value" id="moneyDisplay">0</span>
         </div>
-        <div class="stat-item">
-            <span class="stat-label">Energy</span>
-            <span class="stat-value" id="energyDisplay">20</span>
+        <div class="stat-item res-energy">
+            <span class="stat-label">Энергия</span>
+            <span class="stat-value" id="energyDisplay">0</span>
         </div>
-        <div class="stat-item">
-            <span class="stat-label">Population</span>
-            <span class="stat-value" id="popDisplay" style="color: #60a5fa">0</span>
+        <div class="stat-item res-pop">
+            <span class="stat-label">Население</span>
+            <span class="stat-value" id="popDisplay">0</span>
         </div>
-        <div class="stat-item">
-            <span class="stat-label">Happiness</span>
-            <span class="stat-value" id="happyDisplay" style="color: #4ade80">50%</span>
+        <div class="stat-item res-happy">
+            <span class="stat-label">Счастье</span>
+            <span class="stat-value" id="happyDisplay">0%</span>
         </div>
     </div>
 </header>
@@ -211,28 +309,28 @@ main {
     <div class="tools-scroll">
         <div class="tool-btn" data-tool="bulldoze" onclick="selectTool('bulldoze')">
             <div class="tool-icon">🚧</div>
-            <div class="tool-name">Clear</div>
-            <div class="tool-cost">+5 Credits</div>
+            <div class="tool-name">Очистить</div>
+            <div class="tool-cost" style="color: var(--accent-green)">+5 CR</div>
         </div>
         <div class="tool-btn selected" data-tool="residential" onclick="selectTool('residential')">
             <div class="tool-icon">🏠</div>
             <div class="tool-name">Hab-Dome</div>
-            <div class="tool-cost">50 Credits</div>
+            <div class="tool-cost">50 CR</div>
         </div>
         <div class="tool-btn" data-tool="industrial" onclick="selectTool('industrial')">
             <div class="tool-icon">⚡</div>
             <div class="tool-name">Reactor</div>
-            <div class="tool-cost">100 Credits</div>
+            <div class="tool-cost">100 CR</div>
         </div>
         <div class="tool-btn" data-tool="commercial" onclick="selectTool('commercial')">
             <div class="tool-icon">🏢</div>
             <div class="tool-name">Trade Hub</div>
-            <div class="tool-cost">150 Credits</div>
+            <div class="tool-cost">150 CR</div>
         </div>
         <div class="tool-btn" data-tool="park" onclick="selectTool('park')">
             <div class="tool-icon">🌳</div>
             <div class="tool-name">Bio-Dome</div>
-            <div class="tool-cost">75 Credits</div>
+            <div class="tool-cost">75 CR</div>
         </div>
     </div>
 </div>
@@ -240,32 +338,92 @@ main {
 <div id="toastContainer" class="toast-container"></div>
 
 <script>
-// Game State
+// --- Конфигурация Игры ---
 const GRID_SIZE = 8;
-const TICK_RATE = 3000;
+const TICK_RATE = 2000; // Частота обновления (мс)
+const SAVE_KEY = 'rift_colony_save_v2';
 
+// Данные зданий
 const BUILDINGS = {
-    residential: { name: 'Hab-Dome', icon: '🏠', cost: 50, energy: -2, popCap: 8, income: 0, happiness: 2 },
-    industrial:  { name: 'Reactor', icon: '⚡', cost: 100, energy: 15, popCap: 0, income: 0, happiness: -3 },
-    commercial:  { name: 'Trade Hub', icon: '🏢', cost: 150, energy: -5, popCap: 0, income: 20, happiness: 1 },
-    park:        { name: 'Bio-Dome', icon: '🌳', cost: 75, energy: -1, popCap: 0, income: 0, happiness: 10 },
+    residential: { 
+        name: 'Hab-Dome', icon: '🏠', cost: 50, energy: -2, popCap: 10, incomeMod: 0, happiness: 0,
+        desc: 'Жилищный модуль. Обеспечивает место для 10 колонистов.'
+    },
+    industrial:  { 
+        name: 'Reactor', icon: '⚡', cost: 100, energy: 20, popCap: 0, incomeMod: 0, happiness: -5,
+        desc: 'Ядерный реактор. Вырабатывает 20 ед. энергии. Вреден для экологии.'
+    },
+    commercial:  { 
+        name: 'Trade Hub', icon: '🏢', cost: 150, energy: -3, popCap: 0, incomeMod: 1.5, happiness: 2,
+        desc: 'Торговый центр. Увеличивает налоги с населения на 50%. Требует энергию.'
+    },
+    park:        { 
+        name: 'Bio-Dome', icon: '🌳', cost: 75, energy: -1, popCap: 0, incomeMod: 0, happiness: 15,
+        desc: 'Экосфера. Значительно повышает счастье и скорость роста.'
+    },
 };
 
+// Состояние игры
 let state = {
-    credits: 150,
-    energy: 20,
-    population: 0,
+    credits: 200, // Стартовый капитал увеличен
+    energy: 15,
+    population: 2,
     popCapacity: 0,
-    happiness: 50, // 0-100%
+    happiness: 50, 
     cycle: 0,
-    grid: [],
+    grid: [], // 8x8 array
     selectedTool: 'residential',
     gameActive: false,
     timer: null
 };
 
+// Инициализация Telegram (если есть)
 const tg = window.Telegram?.WebApp;
 if (tg) { tg.expand(); tg.ready(); }
+
+// --- Управление сценой (Фон) ---
+const canvas = document.getElementById('bgCanvas');
+const ctx = canvas.getContext('2d');
+let particles = [];
+
+function resizeCanvas() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+}
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+
+function initParticles() {
+    particles = [];
+    for(let i=0; i<50; i++) {
+        particles.push({
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height,
+            size: Math.random() * 2,
+            speed: Math.random() * 0.5 + 0.1,
+            opacity: Math.random()
+        });
+    }
+}
+
+function animateBg() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#ffffff';
+    particles.forEach(p => {
+        p.y -= p.speed;
+        if(p.y < 0) p.y = canvas.height;
+        ctx.globalAlpha = p.opacity * 0.5;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fill();
+    });
+    requestAnimationFrame(animateBg);
+}
+initParticles();
+animateBg();
+
+
+// --- Основная Логика ---
 
 function initGrid() {
     const gridEl = document.getElementById('grid');
@@ -278,7 +436,16 @@ function initGrid() {
             cell.className = 'cell';
             cell.dataset.x = x;
             cell.dataset.y = y;
+            
+            // Обработчики кликов
             cell.onclick = () => handleCellClick(x, y, cell);
+            
+            // Обработчики подсказок (Hover)
+            cell.onmouseenter = (e) => showTooltip(e, state.grid[y][x], x, y);
+            cell.onmouseleave = () => hideTooltip();
+            // Для тач-устройств
+            cell.ontouchstart = (e) => showTooltip(e.touches[0], state.grid[y][x], x, y);
+
             gridEl.appendChild(cell);
             row.push(null);
         }
@@ -286,36 +453,203 @@ function initGrid() {
     }
 }
 
-function startGame() {
-    document.getElementById('startModal').classList.remove('open');
-    resetState();
-    initGrid();
-    updateUI();
-    state.gameActive = true;
-    state.timer = setInterval(gameTick, TICK_RATE);
-    showToast("Colony initialized. Begin construction.");
-    if (tg) tg.HapticFeedback.impactOccurred('light');
-}
+function calculateStats() {
+    let energyProd = 15; // Базовая энергия
+    let energyUse = 0;
+    let popCap = 0;
+    let happyMod = 0;
+    let incomeMultiplier = 1.0; // Базовый множитель дохода
 
-function resetState() {
-    state = {
-        credits: 150,
-        energy: 20,
-        population: 0,
-        popCapacity: 0,
-        happiness: 50,
-        cycle: 0,
-        grid: [],
-        selectedTool: 'residential',
-        gameActive: false,
-        timer: null
+    // Считаем здания
+    for (let row of state.grid) {
+        for (let type of row) {
+            if (type) {
+                const b = BUILDINGS[type];
+                popCap += b.popCap;
+                happyMod += b.happiness;
+                incomeMultiplier += b.incomeMod; // Торговые центры дают % к налогам
+                
+                if (b.energy > 0) energyProd += b.energy;
+                else if (b.energy < 0) energyUse += Math.abs(b.energy);
+            }
+        }
+    }
+
+    state.popCapacity = popCap;
+    state.energy = energyProd - energyUse;
+
+    // Штраф за недостаток энергии (счастье падает, если энергии нет)
+    if (state.energy < 0) {
+        happyMod -= 5; // Дополнительный штраф
+    }
+
+    // Расчет счастья (0-100)
+    state.happiness = Math.max(0, Math.min(100, 50 + happyMod));
+
+    return { 
+        totalEnergy: state.energy, 
+        incomeMultiplier: incomeMultiplier,
+        energyRatio: state.energy >= 0 ? 1 : 0.5 // Если нет энергии, эффективность падает
     };
 }
 
-function resetGame() {
-    if (state.timer) clearInterval(state.timer);
-    document.getElementById('gameOverModal').classList.remove('open');
-    startGame();
+function gameTick() {
+    if (!state.gameActive) return;
+
+    const stats = calculateStats();
+    state.cycle++;
+
+    // 1. Рост населения
+    // Если есть место и счастье > 30%
+    if (state.popCapacity > state.population && state.happiness > 30) {
+        // Формула роста: разница места * (счастье/100) * шанс
+        const growthChance = (state.happiness / 100); 
+        const growthPotential = (state.popCapacity - state.population);
+        
+        // Рост происходит не каждый тик, а с вероятностью
+        if (Math.random() < growthChance || growthPotential > 20) {
+             const growth = Math.ceil(growthPotential * 0.1 * growthChance); // До 10% свободного места за раз
+             if (growth > 0) {
+                 state.population = Math.min(state.popCapacity, state.population + growth);
+                 showToast(`+${growth} Колонисты`, 'info');
+             }
+        }
+    } else if (state.happiness < 20 && state.population > 0) {
+        // Бегут если невыносимо
+        if (Math.random() < 0.3) {
+            state.population--;
+            showToast(`Колонист ушел!`, 'error');
+        }
+    }
+
+    // 2. Доход (Налоги)
+    // Базовый налог с 1 человека = 2 кредита. * на множитель зданий
+    const baseTax = state.population * 2; 
+    const income = Math.floor(baseTax * stats.incomeMultiplier * stats.energyRatio);
+    
+    state.credits += income;
+
+    // Визуализация дохода/расхода
+    if (income !== 0) {
+        const sign = income >= 0 ? '+' : '';
+        const color = income >= 0 ? 'var(--accent-gold)' : 'var(--accent-pink)';
+        createFloater(document.getElementById('moneyDisplay'), `${sign}${income} CR`, color);
+    }
+
+    // 3. Проверка проигрыша
+    if (state.credits < -50) { // Даем немного в долг
+        gameOver("Банкротство: Колонию продали за долги.");
+    } 
+    // Энергия не вызывает Game Over сразу, но убивает счастье и доход.
+
+    updateUI();
+    saveGame();
+}
+
+function handleCellClick(x, y, cellEl) {
+    if (!state.gameActive) return;
+
+    const current = state.grid[y][x];
+    const tool = state.selectedTool;
+
+    // Инструмент "Снос"
+    if (tool === 'bulldoze') {
+        if (current) {
+            state.credits += 5; 
+            state.grid[y][x] = null;
+            renderCell(x, y, null);
+            createFloater(cellEl, '+5 CR', 'var(--accent-green)');
+            updateUI();
+            if (tg) tg.HapticFeedback.notificationOccurred('success');
+        }
+        return;
+    }
+
+    // Строительство
+    if (current) {
+        showToast("Занято! Очистите ячейку.", "error");
+        return;
+    }
+
+    const b = BUILDINGS[tool];
+    if (state.credits >= b.cost) {
+        state.credits -= b.cost;
+        state.grid[y][x] = tool;
+        
+        renderCell(x, y, tool);
+        createFloater(cellEl, `-${b.cost} CR`, 'var(--text-main)');
+        
+        calculateStats(); // Пересчет сразу для UI
+        updateUI();
+        saveGame();
+        
+        if (tg) tg.HapticFeedback.impactOccurred('medium');
+    } else {
+        showToast("Недостаточно кредитов!", "error");
+        shakeUI(document.querySelector('.controls'));
+    }
+}
+
+// Отрисовка отдельной клетки (оптимизация)
+function renderCell(x, y, type) {
+    // Найти индекс в DOM
+    const index = y * GRID_SIZE + x;
+    const cell = document.getElementById('grid').children[index];
+    
+    if (!type) {
+        cell.innerHTML = '';
+        cell.className = 'cell';
+        return;
+    }
+
+    const b = BUILDINGS[type];
+    cell.className = `cell building-${type}`;
+    
+    // Собираем иконки эффектов
+    let indicators = '';
+    if (b.energy !== 0) {
+        indicators += `<span style="color:${b.energy>0 ? 'var(--accent-cyan)':'var(--accent-pink)'}">${b.energy>0 ? '+':'-'}${Math.abs(b.energy)}⚡</span>`;
+    }
+    if (b.popCap > 0) {
+        indicators += `<span style="color:var(--accent-pink)">+${b.popCap}👤</span>`;
+    }
+
+    cell.innerHTML = `
+        <div class="icon">${b.icon}</div>
+        <div class="cell-indicators">${indicators}</div>
+    `;
+}
+
+// --- UI Функции ---
+
+function updateUI() {
+    const stats = calculateStats();
+    
+    // Анимация чисел (простая замена)
+    document.getElementById('moneyDisplay').innerText = Math.floor(state.credits);
+    document.getElementById('energyDisplay').innerText = stats.totalEnergy;
+    
+    // Цвет энергии
+    const eEl = document.getElementById('energyDisplay');
+    if (stats.totalEnergy < 0) eEl.style.color = 'var(--accent-pink)';
+    else eEl.style.color = 'var(--accent-cyan)';
+
+    document.getElementById('popDisplay').innerText = `${state.population}/${state.popCapacity}`;
+    document.getElementById('happyDisplay').innerText = state.happiness + '%';
+    document.getElementById('cycleDisplay').innerText = state.cycle;
+    
+    // Проверка кнопок (активны ли)
+    document.querySelectorAll('.tool-btn').forEach(btn => {
+        const tool = btn.dataset.tool;
+        if (tool !== 'bulldoze') {
+            const cost = BUILDINGS[tool].cost;
+            if (state.credits < cost) {
+                btn.style.opacity = '0.5';
+            } else {
+                btn.style.opacity = '1';
+            }
+        }
+    });
 }
 
 function selectTool(tool) {
@@ -325,123 +659,158 @@ function selectTool(tool) {
     });
 }
 
-function handleCellClick(x, y, cellEl) {
-    if (!state.gameActive) return;
+function showToast(msg, type = 'normal') {
+    const container = document.getElementById('toastContainer');
+    const toast = document.createElement('div');
+    toast.className = 'toast';
+    if (type === 'error') toast.classList.add('error');
+    if (type === 'info') toast.style.borderLeftColor = 'var(--accent-gold)';
+    
+    toast.innerHTML = `<span>${msg}</span>`;
+    container.appendChild(toast);
+    
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(-20px)';
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
+}
 
-    const current = state.grid[y][x];
-    const tool = state.selectedTool;
+function createFloater(element, text, color) {
+    const rect = element.getBoundingClientRect();
+    const floater = document.createElement('div');
+    floater.className = 'floater';
+    floater.innerText = text;
+    floater.style.color = color;
+    floater.style.left = (rect.left + rect.width / 2 - 20) + 'px';
+    floater.style.top = (rect.top) + 'px';
+    document.body.appendChild(floater);
+    setTimeout(() => floater.remove(), 1200);
+}
 
-    if (tool === 'bulldoze') {
-        if (current) {
-            state.credits += 5; // Fixed +5 as shown on button
-            state.grid[y][x] = null;
-            cellEl.innerHTML = '';
-            cellEl.className = 'cell';
-            createFloater(cellEl, '+5 Cr', 'var(--success)');
-            updateUI();
-            if (tg) tg.HapticFeedback.notificationOccurred('success');
-        }
-        return;
-    }
+function shakeUI(element) {
+    element.classList.remove('shake');
+    void element.offsetWidth; // trigger reflow
+    element.classList.add('shake');
+}
 
-    if (current) {
-        showToast("Cell occupied! Use Clear tool.", "error");
-        return;
-    }
-
-    const b = BUILDINGS[tool];
-    if (state.credits >= b.cost) {
-        state.credits -= b.cost;
-        state.grid[y][x] = tool;
-
-        cellEl.innerHTML = `
-            <div class="icon">${b.icon}</div>
-            <div class="info">
-                ${b.energy !== 0 ? (b.energy > 0 ? '+' : '') + b.energy + '⚡' : ''}
-                ${b.income > 0 ? '+' + b.income + '₡' : ''}
-            </div>`;
-        cellEl.classList.add('building-' + tool);
-
-        createFloater(cellEl, `-${b.cost} Cr`, 'var(--text-muted)');
-        calculateStats();
-        updateUI();
-        if (tg) tg.HapticFeedback.impactOccurred('medium');
+// Тултипы
+function showTooltip(e, type, x, y) {
+    const tooltip = document.getElementById('tooltip');
+    let content = '';
+    
+    if (type) {
+        const b = BUILDINGS[type];
+        content = `<strong>${b.name}</strong>${b.desc}`;
     } else {
-        showToast("Not enough Credits!", "error");
-        shakeUI();
+        content = `<strong>Пустой сектор</strong>Нажмите, чтобы построить.`;
     }
+    
+    tooltip.innerHTML = content;
+    tooltip.style.opacity = 1;
+    
+    // Позиционирование
+    const xVal = e.clientX || e.pageX;
+    const yVal = e.clientY || e.pageY;
+    
+    // Предотвращение вылета за экран
+    let left = xVal + 15;
+    let top = yVal + 15;
+    
+    if (left + 200 > window.innerWidth) left = xVal - 215;
+    
+    tooltip.style.left = left + 'px';
+    tooltip.style.top = top + 'px';
 }
 
-function calculateStats() {
-    let energyProd = 20; // base
-    let energyUse = 0;
-    let income = 0;
-    let popCap = 0;
-    let happyMod = 0;
-    let buildingCount = { residential:0, industrial:0, commercial:0, park:0 };
-
-    for (let row of state.grid) {
-        for (let type of row) {
-            if (type) {
-                const b = BUILDINGS[type];
-                buildingCount[type]++;
-                popCap += b.popCap;
-                happyMod += b.happiness;
-                income += b.income;
-                if (b.energy > 0) energyProd += b.energy;
-                else if (b.energy < 0) energyUse += Math.abs(b.energy);
-            }
-        }
-    }
-
-    const totalEnergy = energyProd - energyUse;
-    state.popCapacity = popCap;
-    state.energy = totalEnergy;
-
-    // Happiness: 0–100%
-    state.happiness = Math.max(0, Math.min(100, 50 + happyMod));
-
-    // Commercial efficiency: needs energy and population
-    const energyRatio = totalEnergy > 0 ? 1 : 0;
-    const popRatio = state.population / Math.max(1, state.popCapacity);
-    const commercialEfficiency = energyRatio * Math.min(1, popRatio * 2); // full at 50% capacity
-    const finalIncome = Math.floor(income * commercialEfficiency);
-
-    return { totalEnergy, finalIncome, popCap };
+function hideTooltip() {
+    const tooltip = document.getElementById('tooltip');
+    tooltip.style.opacity = 0;
 }
 
-function gameTick() {
+// --- Сохранение/Загрузка ---
+
+function saveGame() {
     if (!state.gameActive) return;
+    const saveString = JSON.stringify(state);
+    localStorage.setItem(SAVE_KEY, saveString);
+}
 
-    const stats = calculateStats();
-    state.cycle++;
-
-    // Population growth
-    if (state.popCapacity > state.population) {
-        const growthRate = (state.happiness / 100) * 0.5; // max +0.5 per tick
-        const growth = Math.floor(growthRate * (state.popCapacity - state.population) * 0.1);
-        if (growth > 0) {
-            state.population += growth;
-            showToast(`+${growth} Citizens`);
+function loadGame() {
+    const saveString = localStorage.getItem(SAVE_KEY);
+    if (saveString) {
+        try {
+            const loadedState = JSON.parse(saveString);
+            // Восстанавливаем только нужное
+            state.credits = loadedState.credits;
+            state.grid = loadedState.grid;
+            state.cycle = loadedState.cycle;
+            state.population = loadedState.population;
+            
+            // Пересчитываем производные статы при загрузке
+            calculateStats();
+            
+            // Перерисовываем сетку
+            for (let y = 0; y < GRID_SIZE; y++) {
+                for (let x = 0; x < GRID_SIZE; x++) {
+                    renderCell(x, y, state.grid[y][x]);
+                }
+            }
+            return true;
+        } catch (e) {
+            console.error("Save corrupted", e);
+            return false;
         }
     }
+    return false;
+}
 
-    // Income
-    const netIncome = stats.finalIncome;
-    state.credits += netIncome;
+function clearSave() {
+    localStorage.removeItem(SAVE_KEY);
+    location.reload();
+}
 
-    if (netIncome > 0) {
-        createFloater(document.querySelector('header'), `+${netIncome} Cr`, 'var(--success)');
-    }
+// --- Управление Игрой ---
 
-    // Check failure
-    if (state.credits < 0) {
-        gameOver("Bankruptcy: Insufficient funding");
-    } else if (stats.totalEnergy < 0) {
-        gameOver("Blackout: Energy systems failed");
+function startGame() {
+    document.getElementById('startModal').classList.remove('open');
+    
+    // Пробуем загрузить
+    const hasSave = loadGame();
+    
+    if (!hasSave) {
+        initGrid();
+    } else {
+        // Если загрузили, нужно просто убедиться что UI чист
+        const gridEl = document.getElementById('grid');
+        if(gridEl.children.length === 0) initGrid(); 
     }
 
     updateUI();
+    state.gameActive = true;
+    state.timer = setInterval(gameTick, TICK_RATE);
+    
+    if (!hasSave) showToast("Колония инициализирована.", "info");
+    else showToast("Системы восстановлены из архива.", "info");
+    
+    if (tg) tg.HapticFeedback.impactOccurred('light');
+}
+
+function resetGame() {
+    if (state.timer) clearInterval(state.timer);
+    document.getElementById('gameOverModal').classList.remove('open');
+    localStorage.removeItem(SAVE_KEY); // Удаляем сейв при рестарте
+    
+    // Сброс состояния
+    state.credits = 200;
+    state.energy = 15;
+    state.population = 2;
+    state.popCapacity = 0;
+    state.happiness = 50;
+    state.cycle = 0;
+    state.grid = [];
+    
+    startGame();
 }
 
 function gameOver(reason) {
@@ -452,57 +821,15 @@ function gameOver(reason) {
     document.getElementById('goCycle').innerText = state.cycle;
     document.getElementById('goHappiness').innerText = state.happiness + '%';
     document.getElementById('gameOverModal').classList.add('open');
+    localStorage.removeItem(SAVE_KEY); // Авто-удаление при проигрыше
     if (tg) tg.HapticFeedback.notificationOccurred('error');
 }
 
-function updateUI() {
-    const stats = calculateStats();
-    document.getElementById('moneyDisplay').innerText = Math.floor(state.credits);
-    document.getElementById('energyDisplay').innerText = stats.totalEnergy;
-    document.getElementById('energyDisplay').style.color = stats.totalEnergy < 0 ? 'var(--danger)' : '#f87171';
-    document.getElementById('popDisplay').innerText = state.population + '/' + state.popCapacity;
-    document.getElementById('happyDisplay').innerText = state.happiness + '%';
-    document.getElementById('cycleDisplay').innerText = state.cycle;
-}
-
-function showToast(msg, type = 'normal') {
-    const container = document.getElementById('toastContainer');
-    const toast = document.createElement('div');
-    toast.className = 'toast' + (type === 'error' ? ' error' : '');
-    toast.innerText = msg;
-    container.appendChild(toast);
-    setTimeout(() => {
-        toast.style.opacity = '0';
-        toast.style.transform = 'translateY(-20px)';
-        setTimeout(() => toast.remove(), 400);
-    }, 2500);
-}
-
-function createFloater(element, text, color) {
-    const rect = element.getBoundingClientRect();
-    const floater = document.createElement('div');
-    floater.className = 'floater';
-    floater.innerText = text;
-    floater.style.color = color;
-    floater.style.left = (rect.left + rect.width / 2 - 30) + 'px';
-    floater.style.top = (rect.top + rect.height / 2) + 'px';
-    document.body.appendChild(floater);
-    setTimeout(() => floater.remove(), 1200);
-}
-
-function shakeUI() {
-    const header = document.querySelector('header');
-    header.style.animation = 'shake 0.5s ease-in-out';
-    setTimeout(() => header.style.animation = '', 500);
-}
-
+// Старт при загрузке
 document.addEventListener('DOMContentLoaded', () => {
-    initGrid();
-    // Add shake animation
-    const style = document.createElement('style');
-    style.innerHTML = `@keyframes shake { 0%,100% {transform:translateX(0)} 10%,30%,50%,70%,90% {transform:translateX(-8px)} 20%,40%,60%,80% {transform:translateX(8px)} }`;
-    document.head.appendChild(style);
+    // Если есть сейв, можно показывать кнопку "Continue", но для простоты просто ждем клика "Initialize"
 });
+
 </script>
 </body>
 </html>
