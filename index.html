@@ -4,12 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>RIFT: Colony Builder</title>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
     <style>
         :root {
             --bg-color: #0f172a;
             --panel-bg: #1e293b;
-            --accent-primary: #06b6d4; /* Cyan */
-            --accent-secondary: #d946ef; /* Magenta */
+            --accent-primary: #06b6d4;
+            --accent-secondary: #d946ef;
             --success: #22c55e;
             --danger: #ef4444;
             --text-main: #f8fafc;
@@ -30,19 +31,25 @@
             background-color: var(--bg-color);
             color: var(--text-main);
             font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            overflow: hidden; /* Prevent body scroll, handle inside app */
+            overflow: hidden;
             height: 100vh;
             display: flex;
             flex-direction: column;
         }
 
-        /* --- Header & Stats --- */
+        #threeContainer {
+            position: fixed;
+            inset: 0;
+            z-index: 1;
+        }
+
         header {
             background: var(--panel-bg);
             padding: 10px 15px;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
             z-index: 10;
             border-bottom: 1px solid var(--grid-line);
+            position: relative;
         }
 
         .header-top {
@@ -90,7 +97,6 @@
             font-family: 'Courier New', monospace;
         }
 
-        /* --- Game Grid --- */
         main {
             flex: 1;
             display: flex;
@@ -98,58 +104,20 @@
             align-items: center;
             overflow: auto;
             position: relative;
-            background-image: 
-                radial-gradient(var(--grid-line) 1px, transparent 1px);
-            background-size: 20px 20px;
+            z-index: 5;
+            pointer-events: none;
         }
 
         .city-grid {
-            display: grid;
-            grid-template-columns: repeat(8, var(--cell-size));
-            grid-template-rows: repeat(8, var(--cell-size));
-            gap: 2px;
-            padding: 10px;
-            background: rgba(0,0,0,0.5);
-            border: 1px solid var(--grid-line);
-            border-radius: 4px;
+            display: none;
         }
 
-        .cell {
-            background-color: var(--panel-bg);
-            border: 1px solid var(--grid-line);
-            border-radius: 2px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: calc(var(--cell-size) * 0.6);
-            cursor: pointer;
-            position: relative;
-            transition: all 0.2s ease;
-        }
-
-        .cell:hover {
-            border-color: var(--text-muted);
-            z-index: 2;
-        }
-
-        .cell.active {
-            background-color: rgba(6, 182, 212, 0.1);
-            border-color: var(--accent-primary);
-            box-shadow: inset 0 0 10px rgba(6, 182, 212, 0.2);
-        }
-
-        /* Building Types Visuals */
-        .building-residential { color: #60a5fa; text-shadow: 0 0 5px #60a5fa; }
-        .building-commercial { color: #fbbf24; text-shadow: 0 0 5px #fbbf24; }
-        .building-industrial { color: #f87171; text-shadow: 0 0 5px #f87171; }
-        .building-park { color: #4ade80; text-shadow: 0 0 5px #4ade80; }
-
-        /* --- Controls --- */
         .controls {
             background: var(--panel-bg);
             border-top: 1px solid var(--grid-line);
             padding: 10px;
             z-index: 20;
+            position: relative;
         }
 
         .tools-scroll {
@@ -157,7 +125,7 @@
             gap: 10px;
             overflow-x: auto;
             padding-bottom: 5px;
-            scrollbar-width: none; /* Firefox */
+            scrollbar-width: none;
         }
         .tools-scroll::-webkit-scrollbar { display: none; }
 
@@ -173,6 +141,7 @@
             cursor: pointer;
             transition: all 0.2s;
             color: var(--text-muted);
+            pointer-events: auto;
         }
 
         .tool-btn.selected {
@@ -186,7 +155,6 @@
         .tool-cost { font-size: 0.65rem; color: var(--text-muted); }
         .tool-btn.selected .tool-cost { color: var(--accent-primary); }
 
-        /* --- Overlay / Modal --- */
         .modal-overlay {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -237,10 +205,9 @@
 
         .btn-primary:active { transform: scale(0.98); }
 
-        /* --- Notifications (Toasts) --- */
         .toast-container {
             position: fixed;
-            bottom: 100px; /* Above controls */
+            bottom: 100px;
             left: 50%;
             transform: translateX(-50%);
             display: flex;
@@ -266,7 +233,6 @@
             to { transform: translateY(0); opacity: 1; }
         }
 
-        /* Floating text animation for resource gain */
         .floater {
             position: absolute;
             color: var(--success);
@@ -286,7 +252,8 @@
 </head>
 <body>
 
-    <!-- Welcome Modal -->
+    <div id="threeContainer"></div>
+
     <div id="startModal" class="modal-overlay open">
         <div class="modal">
             <h2>Welcome to RIFT</h2>
@@ -297,7 +264,6 @@
         </div>
     </div>
 
-    <!-- Game Over Modal -->
     <div id="gameOverModal" class="modal-overlay">
         <div class="modal">
             <h2 id="goTitle" style="color: var(--danger)">System Failure</h2>
@@ -332,38 +298,31 @@
     </header>
 
     <main>
-        <div id="grid" class="city-grid">
-            <!-- Grid generated by JS -->
-        </div>
+        <div id="grid" class="city-grid"></div>
     </main>
 
     <div class="controls">
         <div class="tools-scroll">
-            <!-- Bulldoze -->
             <div class="tool-btn" onclick="selectTool('bulldoze')">
                 <div class="tool-icon">🚧</div>
                 <div class="tool-name">Clear</div>
                 <div class="tool-cost">+5 Credits</div>
             </div>
-            <!-- Residential -->
             <div class="tool-btn selected" onclick="selectTool('residential')" id="btn-residential">
                 <div class="tool-icon">🏠</div>
                 <div class="tool-name">Hab-Dome</div>
                 <div class="tool-cost">50 Credits</div>
             </div>
-            <!-- Industrial (Energy) -->
             <div class="tool-btn" onclick="selectTool('industrial')" id="btn-industrial">
                 <div class="tool-icon">⚡</div>
                 <div class="tool-name">Reactor</div>
                 <div class="tool-cost">100 Credits</div>
             </div>
-            <!-- Commercial (Money) -->
             <div class="tool-btn" onclick="selectTool('commercial')" id="btn-commercial">
                 <div class="tool-icon">🏢</div>
                 <div class="tool-name">Trade Hub</div>
                 <div class="tool-cost">150 Credits</div>
             </div>
-            <!-- Park (Happiness) -->
             <div class="tool-btn" onclick="selectTool('park')" id="btn-park">
                 <div class="tool-icon">🌳</div>
                 <div class="tool-name">Bio-Dome</div>
@@ -375,30 +334,29 @@
     <div id="toastContainer" class="toast-container"></div>
 
     <script>
-        // --- Game Config & State ---
         const GRID_SIZE = 8;
-        const TICK_RATE = 3000; // 3 seconds per cycle
+        const TICK_RATE = 3000;
 
         const BUILDINGS = {
             'residential': { 
                 name: 'Hab-Dome', icon: '🏠', cost: 50, 
-                energy: -2, pop: 5, income: 0, color: 'building-residential' 
+                energy: -2, pop: 5, income: 0, color: 0x60a5fa, height: 1.5
             },
             'industrial': { 
                 name: 'Reactor', icon: '⚡', cost: 100, 
-                energy: 15, pop: 0, income: 0, color: 'building-industrial' 
+                energy: 15, pop: 0, income: 0, color: 0xf87171, height: 2
             },
             'commercial': { 
                 name: 'Trade Hub', icon: '🏢', cost: 150, 
-                energy: -5, pop: 0, income: 15, color: 'building-commercial' 
+                energy: -5, pop: 0, income: 15, color: 0xfbbf24, height: 2.5
             },
             'park': { 
                 name: 'Bio-Dome', icon: '🌳', cost: 75, 
-                energy: -1, pop: 0, income: 0, color: 'building-park' 
+                energy: -1, pop: 0, income: 0, color: 0x4ade80, height: 1
             },
             'bulldoze': {
-                name: 'Clear', icon: '', cost: -5, // Negative cost means refund/cost to clear
-                energy: 0, pop: 0, income: 0, color: ''
+                name: 'Clear', icon: '', cost: -5,
+                energy: 0, pop: 0, income: 0, color: 0x000000, height: 0
             }
         };
 
@@ -407,34 +365,175 @@
             energy: 20,
             population: 0,
             cycle: 0,
-            grid: [], // 2D array storing building types or null
+            grid: [],
             selectedTool: 'residential',
             gameActive: false,
             timer: null
         };
 
-        // --- Telegram WebApp Integration ---
-        const tg = window.Telegram.WebApp;
-        if (tg) {
-            tg.expand();
-            tg.ready();
+        let scene, camera, renderer, raycaster, mouse;
+        let groundPlane, highlightMesh;
+        let buildingMeshes = {};
+        const CELL_SIZE = 1;
+        const GRID_OFFSET = GRID_SIZE / 2;
+
+        function initThree() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x05080f);
+
+            camera = new THREE.OrthographicCamera(-8, 8, 8, -8, 0.1, 100);
+            camera.position.set(10, 10, 10);
+            camera.lookAt(0, 0, 0);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            document.getElementById("threeContainer").appendChild(renderer.domElement);
+
+            raycaster = new THREE.Raycaster();
+            mouse = new THREE.Vector2();
+
+            scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+            const dir = new THREE.DirectionalLight(0x00ffff, 0.8);
+            dir.position.set(10, 20, 10);
+            scene.add(dir);
+
+            const planeGeo = new THREE.PlaneGeometry(GRID_SIZE, GRID_SIZE);
+            const planeMat = new THREE.MeshBasicMaterial({ visible: false });
+            groundPlane = new THREE.Mesh(planeGeo, planeMat);
+            groundPlane.rotation.x = -Math.PI / 2;
+            scene.add(groundPlane);
+
+            const grid = new THREE.GridHelper(GRID_SIZE, GRID_SIZE, 0x00ffff, 0x223344);
+            scene.add(grid);
+
+            const hGeo = new THREE.PlaneGeometry(1, 1);
+            const hMat = new THREE.MeshBasicMaterial({
+                color: 0x00ffff,
+                transparent: true,
+                opacity: 0.3
+            });
+            highlightMesh = new THREE.Mesh(hGeo, hMat);
+            highlightMesh.rotation.x = -Math.PI / 2;
+            highlightMesh.visible = false;
+            scene.add(highlightMesh);
+
+            window.addEventListener('resize', onWindowResize);
+            renderer.domElement.addEventListener('pointermove', onPointerMove);
+            renderer.domElement.addEventListener('click', onPointerClick);
+
+            animate();
         }
 
-        // --- Initialization ---
-        function initGrid() {
-            const gridEl = document.getElementById('grid');
-            gridEl.innerHTML = '';
-            state.grid = [];
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            if (buildingMeshes) {
+                Object.values(buildingMeshes).forEach(mesh => {
+                    if (mesh && mesh.rotation) {
+                        mesh.rotation.y += 0.005;
+                    }
+                });
+            }
+            
+            renderer.render(scene, camera);
+        }
 
+        function onWindowResize() {
+            camera.left = -window.innerWidth / 150;
+            camera.right = window.innerWidth / 150;
+            camera.top = window.innerHeight / 150;
+            camera.bottom = -window.innerHeight / 150;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function onPointerMove(event) {
+            if (!renderer) return;
+
+            const rect = renderer.domElement.getBoundingClientRect();
+            mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+            mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+            raycaster.setFromCamera(mouse, camera);
+            const hit = raycaster.intersectObject(groundPlane);
+
+            if (hit.length) {
+                const p = hit[0].point;
+                const gx = Math.floor(p.x + GRID_OFFSET);
+                const gy = Math.floor(p.z + GRID_OFFSET);
+
+                if (gx >= 0 && gx < GRID_SIZE && gy >= 0 && gy < GRID_SIZE) {
+                    highlightMesh.position.set(
+                        gx - GRID_OFFSET + 0.5,
+                        0.01,
+                        gy - GRID_OFFSET + 0.5
+                    );
+                    highlightMesh.visible = true;
+                } else {
+                    highlightMesh.visible = false;
+                }
+            }
+        }
+
+        function onPointerClick(event) {
+            if (!state.gameActive) return;
+
+            const rect = renderer.domElement.getBoundingClientRect();
+            mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+            mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+            raycaster.setFromCamera(mouse, camera);
+            const hit = raycaster.intersectObject(groundPlane);
+
+            if (hit.length) {
+                const p = hit[0].point;
+                const gx = Math.floor(p.x + GRID_OFFSET);
+                const gy = Math.floor(p.z + GRID_OFFSET);
+
+                if (gx >= 0 && gx < GRID_SIZE && gy >= 0 && gy < GRID_SIZE) {
+                    handleCellClick(gx, gy);
+                }
+            }
+        }
+
+        function createBuilding(x, y, type) {
+            const buildingData = BUILDINGS[type];
+            const geometry = new THREE.BoxGeometry(0.8, buildingData.height, 0.8);
+            const material = new THREE.MeshStandardMaterial({ 
+                color: buildingData.color,
+                emissive: buildingData.color,
+                emissiveIntensity: 0.3,
+                metalness: 0.5,
+                roughness: 0.5
+            });
+            
+            const mesh = new THREE.Mesh(geometry, material);
+            mesh.position.set(
+                x - GRID_OFFSET + 0.5,
+                buildingData.height / 2,
+                y - GRID_OFFSET + 0.5
+            );
+            
+            scene.add(mesh);
+            return mesh;
+        }
+
+        function removeBuilding(x, y) {
+            const key = `${x}-${y}`;
+            if (buildingMeshes[key]) {
+                scene.remove(buildingMeshes[key]);
+                buildingMeshes[key].geometry.dispose();
+                buildingMeshes[key].material.dispose();
+                delete buildingMeshes[key];
+            }
+        }
+
+        function initGrid() {
+            state.grid = [];
             for (let y = 0; y < GRID_SIZE; y++) {
                 let row = [];
                 for (let x = 0; x < GRID_SIZE; x++) {
-                    const cell = document.createElement('div');
-                    cell.classList.add('cell');
-                    cell.dataset.x = x;
-                    cell.dataset.y = y;
-                    cell.onclick = () => handleCellClick(x, y, cell);
-                    gridEl.appendChild(cell);
                     row.push(null);
                 }
                 state.grid.push(row);
@@ -448,7 +547,6 @@
             updateUI();
             state.gameActive = true;
             
-            // Start Game Loop
             if (state.timer) clearInterval(state.timer);
             state.timer = setInterval(gameTick, TICK_RATE);
             
@@ -456,6 +554,13 @@
         }
 
         function resetState() {
+            Object.values(buildingMeshes).forEach(mesh => {
+                scene.remove(mesh);
+                mesh.geometry.dispose();
+                mesh.material.dispose();
+            });
+            buildingMeshes = {};
+
             state = {
                 credits: 150,
                 energy: 20,
@@ -473,15 +578,10 @@
             startGame();
         }
 
-        // --- Interaction ---
         function selectTool(toolName) {
             state.selectedTool = toolName;
             
-            // Visual update for buttons
             document.querySelectorAll('.tool-btn').forEach(btn => btn.classList.remove('selected'));
-            const btnId = toolName === 'bulldoze' ? '' : `btn-${toolName}`;
-            // Simple logic to highlight the clicked button. 
-            // Ideally we pass 'this' or use ID, but looping works for small scale.
             const buttons = document.querySelectorAll('.tool-btn');
             if(toolName === 'bulldoze') buttons[0].classList.add('selected');
             else {
@@ -490,32 +590,27 @@
             }
         }
 
-        function handleCellClick(x, y, cellEl) {
+        function handleCellClick(x, y) {
             if (!state.gameActive) return;
 
             const currentBuilding = state.grid[y][x];
             const tool = state.selectedTool;
 
-            // Bulldoze Logic
             if (tool === 'bulldoze') {
                 if (currentBuilding) {
                     const buildingData = BUILDINGS[currentBuilding];
-                    // 50% refund logic + fixed cost to clear
                     const refund = Math.floor(buildingData.cost * 0.5) - 5; 
                     
                     state.credits += refund;
                     state.grid[y][x] = null;
+                    removeBuilding(x, y);
                     
-                    // Visuals
-                    cellEl.innerHTML = '';
-                    cellEl.className = 'cell';
-                    createFloater(cellEl, `-${Math.abs(refund)} Cr`, 'var(--danger)');
                     updateUI();
+                    showToast(`Cleared. Refund: ${refund} Credits`);
                 }
                 return;
             }
 
-            // Build Logic
             if (currentBuilding) {
                 showToast("Space occupied! Clear it first.", "error");
                 return;
@@ -524,30 +619,24 @@
             const buildingConfig = BUILDINGS[tool];
 
             if (state.credits >= buildingConfig.cost) {
-                // Deduct cost
                 state.credits -= buildingConfig.cost;
-                
-                // Update Grid State
                 state.grid[y][x] = tool;
+                
+                const key = `${x}-${y}`;
+                buildingMeshes[key] = createBuilding(x, y, tool);
 
-                // Update Visuals
-                cellEl.innerHTML = buildingConfig.icon;
-                cellEl.classList.add(buildingConfig.color);
-                createFloater(cellEl, `-${buildingConfig.cost} Cr`, 'var(--text-muted)');
-
-                // Immediate stats check (e.g. if you build a reactor, energy goes up now)
                 calculateStats(); 
                 updateUI();
+                showToast(`Built ${buildingConfig.name}`);
             } else {
                 showToast("Insufficient Credits!", "error");
                 shakeUI();
             }
         }
 
-        // --- Game Loop ---
         function calculateStats() {
             let pop = 0;
-            let energyProd = 0; // Base energy included
+            let energyProd = 0;
             let energyUse = 0;
             let income = 0;
 
@@ -559,17 +648,12 @@
                         pop += b.pop;
                         if (b.energy > 0) energyProd += b.energy;
                         else energyUse += Math.abs(b.energy);
-                        
                         income += b.income;
                     }
                 }
             }
 
-            // Total Energy
             const totalEnergy = energyProd - energyUse;
-            
-            // Commercial buildings need population to work effectively
-            // Simple logic: Income scales with pop cap (max efficiency at 50 pop)
             const efficiency = Math.min(1, pop / 50); 
             const finalIncome = Math.floor(income * efficiency);
 
@@ -581,32 +665,23 @@
 
             const stats = calculateStats();
             state.population = stats.pop;
-            
-            // Update Cycle Count
             state.cycle++;
 
-            // Calculate Income / Expenses
-            // Maintenance cost per building type (abstracted)
-            const maintenance = (state.population * 1) + (stats.totalEnergy * 0); 
-            
+            const maintenance = state.population * 1;
             const netIncome = stats.finalIncome - maintenance;
             state.credits += netIncome;
             state.energy = stats.totalEnergy;
 
-            // Check Win/Loss
             if (state.credits < 0) {
                 gameOver("Bankruptcy. The colony ran out of funding.");
                 return;
             }
 
             if (state.energy < 0) {
-                // Blackout mechanic: reduce income or population?
-                // Let's say blackout damages buildings (simply by resetting credits to 0 and warning)
                 showToast("⚠️ BLACKOUT: Energy Deficit!", "error");
-                state.credits = Math.max(0, state.credits - 20); // Penalty
+                state.credits = Math.max(0, state.credits - 20);
             }
 
-            // Visual feedback
             if (netIncome > 0) {
                 showToast(`Cycle ${state.cycle}: +${netIncome} Credits`);
             } else if (netIncome < 0) {
@@ -626,11 +701,9 @@
             document.getElementById('gameOverModal').classList.add('open');
         }
 
-        // --- UI & Helpers ---
         function updateUI() {
-            const stats = calculateStats(); // Recalculate for display
+            const stats = calculateStats();
             
-            // Animate Numbers slightly could go here, simple text replace for now
             document.getElementById('moneyDisplay').innerText = Math.floor(state.credits);
             document.getElementById('popDisplay').innerText = stats.pop;
             document.getElementById('cycleDisplay').innerText = state.cycle;
@@ -656,19 +729,6 @@
             }, 2000);
         }
 
-        function createFloater(element, text, color) {
-            const rect = element.getBoundingClientRect();
-            const floater = document.createElement('div');
-            floater.className = 'floater';
-            floater.innerText = text;
-            floater.style.color = color;
-            floater.style.left = (rect.left + 10) + 'px';
-            floater.style.top = rect.top + 'px';
-            
-            document.body.appendChild(floater);
-            setTimeout(() => floater.remove(), 1000);
-        }
-
         function shakeUI() {
             const header = document.querySelector('header');
             header.style.transform = "translateX(5px)";
@@ -677,11 +737,9 @@
             setTimeout(() => header.style.transform = "translateX(0)", 150);
         }
 
-        // --- Init ---
-        // Wait for DOM
         document.addEventListener('DOMContentLoaded', () => {
-            // Pre-render empty grid for background visuals before start
             initGrid();
+            initThree();
         });
 
     </script>
