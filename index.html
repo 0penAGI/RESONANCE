@@ -375,34 +375,6 @@
     <div id="toastContainer" class="toast-container"></div>
 
     <script>
-        // --- Telegram WebApp Integration ---
-        const tg = window.Telegram.WebApp;
-        let USER_ID = null;
-        if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
-            USER_ID = tg.initDataUnsafe.user.id;
-        }
-        if (tg) {
-            tg.expand();
-            tg.ready();
-        }
-
-        // --- Sound Engine ---
-        const Sounds = {
-            build: new Audio('https://actions.google.com/sounds/v1/cartoon/pop.ogg'),
-            error: new Audio('https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg'),
-            income: new Audio('https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg'),
-            collapse: new Audio('https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg'),
-            start: new Audio('https://actions.google.com/sounds/v1/cartoon/ascending_whistle.ogg')
-        };
-
-        function playSound(name) {
-            if (!Sounds[name]) return;
-            try {
-                Sounds[name].currentTime = 0;
-                Sounds[name].play();
-            } catch (e) {}
-        }
-
         // --- Game Config & State ---
         const GRID_SIZE = 8;
         const TICK_RATE = 3000; // 3 seconds per cycle
@@ -441,6 +413,13 @@
             timer: null
         };
 
+        // --- Telegram WebApp Integration ---
+        const tg = window.Telegram.WebApp;
+        if (tg) {
+            tg.expand();
+            tg.ready();
+        }
+
         // --- Initialization ---
         function initGrid() {
             const gridEl = document.getElementById('grid');
@@ -468,10 +447,7 @@
             initGrid();
             updateUI();
             state.gameActive = true;
-            playSound('start');
-            if (USER_ID) {
-                console.log("RIFT USER:", USER_ID);
-            }
+            
             // Start Game Loop
             if (state.timer) clearInterval(state.timer);
             state.timer = setInterval(gameTick, TICK_RATE);
@@ -550,7 +526,7 @@
             if (state.credits >= buildingConfig.cost) {
                 // Deduct cost
                 state.credits -= buildingConfig.cost;
-                playSound('build');
+                
                 // Update Grid State
                 state.grid[y][x] = tool;
 
@@ -563,7 +539,6 @@
                 calculateStats(); 
                 updateUI();
             } else {
-                playSound('error');
                 showToast("Insufficient Credits!", "error");
                 shakeUI();
             }
@@ -633,7 +608,6 @@
 
             // Visual feedback
             if (netIncome > 0) {
-                playSound('income');
                 showToast(`Cycle ${state.cycle}: +${netIncome} Credits`);
             } else if (netIncome < 0) {
                 showToast(`Cycle ${state.cycle}: ${netIncome} Credits`, "error");
@@ -643,7 +617,6 @@
         }
 
         function gameOver(reason) {
-            playSound('collapse');
             state.gameActive = false;
             clearInterval(state.timer);
             document.getElementById('goTitle').innerText = "COLLAPSE";
